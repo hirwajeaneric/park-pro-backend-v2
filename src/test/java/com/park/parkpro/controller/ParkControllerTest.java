@@ -1,9 +1,13 @@
 package com.park.parkpro.controller;
 
+import com.park.parkpro.TestConfig;
 import com.park.parkpro.domain.Park;
+import com.park.parkpro.dto.LoginRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,14 +19,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Import(TestConfig.class)
 class ParkControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
+    private String adminToken;
+
+    @BeforeEach
+    void setUp() {
+        // Login with the seeded admin user to get JWT token
+        LoginRequest login = new LoginRequest();
+        login.setEmail("admin@example.com");
+        login.setPassword("adminPass123");
+        var loginResponse = restTemplate.postForEntity("/login", login, String.class);
+        assertEquals(HttpStatus.OK, loginResponse.getStatusCode());
+        adminToken = loginResponse.getBody();
+    }
+
     private HttpEntity<Park> createRequest(Park park) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("testuser", "testpass");
+        headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         return new HttpEntity<>(park, headers);
     }
@@ -40,37 +58,39 @@ class ParkControllerTest {
         Park createdPark = response.getBody();
         assertNotNull(createdPark);
         assertEquals("Loango", createdPark.getName());
-        assertNull(createdPark.getLocation());
+        assertEquals("Southwest Gabon", createdPark.getLocation());
+        assertEquals("Coastal park", createdPark.getDescription());
         assertTrue(response.getHeaders().getLocation().toString().contains(createdPark.getId().toString()));
     }
 
     @Test
-    void postParkWithDuplicateNameReturns400() {
+    void postParkWithDuplicateNameReturns409() {
         // Arrange: Create first park
-        Park park1 = new Park("Loango", "Southwest Gabon", "Coastal park");
-        restTemplate.exchange("/api/parks", HttpMethod.POST ,createRequest(park1), String.class);
+        Park park1 = new Park("Ivindo", "Southwest Gabon", "Coastal park");
+        var firstResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park1), Park.class);
+        assertEquals(HttpStatus.CREATED, firstResponse.getStatusCode());
 
         // Attempt duplicate
-        Park park2 = new Park("Loango", "Southwest Gabon", "Coastal park");
+        Park park2 = new Park("Ivindo", "New Location", "Different desc");
 
         // Act
         var response = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park2), String.class);
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains(("Park with name 'Loango' already exists")));
+        assertTrue(response.getBody().contains("Park with name 'Ivindo' already exists"));
     }
 
     @Test
     void postParkWithoutAuthReturns401() {
         // Arrange
-        Park park = new Park("Ivindo", "Southeast Gabon", "Rain forest and park");
+        Park park = new Park("Lelo", "Southeast Gabon", "Rain forest and park");
         HttpEntity<Park> request = new HttpEntity<>(park);
 
         // Act
         var response = restTemplate.exchange("/api/parks", HttpMethod.POST, request, String.class);
 
         // Assert
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 }

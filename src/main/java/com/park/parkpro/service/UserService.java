@@ -3,6 +3,7 @@ package com.park.parkpro.service;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequest;
 import com.park.parkpro.dto.SignupRequest;
+import com.park.parkpro.exception.IllegalArgumentException;
 import com.park.parkpro.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

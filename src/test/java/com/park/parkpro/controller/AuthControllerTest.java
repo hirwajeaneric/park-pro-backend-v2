@@ -84,10 +84,13 @@ class AuthControllerTest {
         request1.setLastName("Smith");
         request1.setEmail("alice@example.com");
         request1.setPassword("visitorPass123");
-        restTemplate.postForEntity("/api/signup", request1, UserResponse.class);
+        var firstResponse = restTemplate.postForEntity("/api/signup", request1, UserResponse.class);
+        assertEquals(HttpStatus.CREATED, firstResponse.getStatusCode());
 
         // Attempt duplicate
         SignupRequest request2 = new SignupRequest();
+        request2.setFirstName("Alice");
+        request2.setLastName("James");
         request2.setEmail("alice@example.com");
         request2.setPassword("newPass");
         HttpEntity<SignupRequest> entity = new HttpEntity<>(request2);
@@ -97,6 +100,7 @@ class AuthControllerTest {
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody().contains("Email 'alice@example.com' is already taken"));
+        assertTrue(response.getBody().contains("Email 'alice@example.com' is already taken"),
+                "Expected error message not found in response: " + response.getBody());
     }
 }
