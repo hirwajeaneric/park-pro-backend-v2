@@ -2,14 +2,14 @@ package com.park.parkpro.dto;
 
 import java.util.UUID;
 
-public class UserResponse {
+public class UserResponseDto {
     private UUID id;
     private String firstName;
     private String lastName;
     private String email;
     private String role;
 
-    public UserResponse(UUID id, String firstName, String lastName, String email, String role) {
+    public UserResponseDto(UUID id, String firstName, String lastName, String email, String role) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;

@@ -1,8 +1,8 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.User;
-import com.park.parkpro.dto.CreateUserRequest;
-import com.park.parkpro.dto.SignupRequest;
+import com.park.parkpro.dto.CreateUserRequestDto;
+import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.exception.IllegalArgumentException;
 import com.park.parkpro.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +21,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User createUser(CreateUserRequest request) {
+    public User createUser(CreateUserRequestDto request) {
         // Validate inputs
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new IllegalArgumentException("Email cannot be empty");
@@ -48,7 +48,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User signup(SignupRequest request) {
+    public User signup(SignupRequestDto request) {
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new IllegalArgumentException("Email cannot be empty");
         }

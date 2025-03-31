@@ -1,9 +1,8 @@
 package com.park.parkpro.controller;
 
-import com.park.parkpro.domain.User;
-import com.park.parkpro.dto.LoginRequest;
-import com.park.parkpro.dto.SignupRequest;
-import com.park.parkpro.dto.UserResponse;
+import com.park.parkpro.dto.LoginRequestDto;
+import com.park.parkpro.dto.SignupRequestDto;
+import com.park.parkpro.dto.UserResponseDto;
 import com.park.parkpro.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,17 +33,17 @@ class AuthControllerTest {
     @Test
     void loginReturnsToken() {
         // Arrange: Create a user first
-        SignupRequest signup = new SignupRequest();
+        SignupRequestDto signup = new SignupRequestDto();
         signup.setFirstName("Alice");
         signup.setLastName("Smith");
         signup.setEmail("alice@example.com");
         signup.setPassword("visitorPass123");
-        restTemplate.postForEntity("/api/signup", signup, UserResponse.class);
+        restTemplate.postForEntity("/api/signup", signup, UserResponseDto.class);
 
-        LoginRequest request = new LoginRequest();
+        LoginRequestDto request = new LoginRequestDto();
         request.setEmail("alice@example.com");
         request.setPassword("visitorPass123");
-        HttpEntity<LoginRequest> entity = new HttpEntity<>(request);
+        HttpEntity<LoginRequestDto> entity = new HttpEntity<>(request);
 
         // Act
         var response = restTemplate.postForEntity("/login", entity, String.class);
@@ -57,19 +56,19 @@ class AuthControllerTest {
     @Test
     void signupReturns201() {
         // Arrange
-        SignupRequest request = new SignupRequest();
+        SignupRequestDto request = new SignupRequestDto();
         request.setFirstName("Alice");
         request.setLastName("Smith");
         request.setEmail("alice@example.com");
         request.setPassword("visitorPass123");
-        HttpEntity<SignupRequest> entity = new HttpEntity<>(request);
+        HttpEntity<SignupRequestDto> entity = new HttpEntity<>(request);
 
         // Act
-        var response = restTemplate.postForEntity("/api/signup", entity, UserResponse.class);
+        var response = restTemplate.postForEntity("/api/signup", entity, UserResponseDto.class);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        UserResponse user = response.getBody();
+        UserResponseDto user = response.getBody();
         assertNotNull(user);
         assertEquals("alice@example.com", user.getEmail());
         assertEquals("VISITOR", user.getRole());
@@ -79,21 +78,21 @@ class AuthControllerTest {
     @Test
     void signupWithDuplicateEmailReturns409() {
         // Arrange: Create first user
-        SignupRequest request1 = new SignupRequest();
+        SignupRequestDto request1 = new SignupRequestDto();
         request1.setFirstName("Alice");
         request1.setLastName("Smith");
         request1.setEmail("alice@example.com");
         request1.setPassword("visitorPass123");
-        var firstResponse = restTemplate.postForEntity("/api/signup", request1, UserResponse.class);
+        var firstResponse = restTemplate.postForEntity("/api/signup", request1, UserResponseDto.class);
         assertEquals(HttpStatus.CREATED, firstResponse.getStatusCode());
 
         // Attempt duplicate
-        SignupRequest request2 = new SignupRequest();
+        SignupRequestDto request2 = new SignupRequestDto();
         request2.setFirstName("Alice");
         request2.setLastName("James");
         request2.setEmail("alice@example.com");
         request2.setPassword("newPass");
-        HttpEntity<SignupRequest> entity = new HttpEntity<>(request2);
+        HttpEntity<SignupRequestDto> entity = new HttpEntity<>(request2);
 
         // Act
         var response = restTemplate.postForEntity("/api/signup", entity, String.class);

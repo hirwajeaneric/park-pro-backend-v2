@@ -1,8 +1,8 @@
 package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.User;
-import com.park.parkpro.dto.CreateUserRequest;
-import com.park.parkpro.dto.UserResponse;
+import com.park.parkpro.dto.CreateUserRequestDto;
+import com.park.parkpro.dto.UserResponseDto;
 import com.park.parkpro.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +20,9 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponseDto> createUser(@RequestBody CreateUserRequestDto request) {
         User user = userService.createUser(request);
-        UserResponse response = new UserResponse(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
+        UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
     }
 }

@@ -1,6 +1,6 @@
 package com.park.parkpro.dto;
 
-public class LoginRequest {
+public class LoginRequestDto {
     private String email;
     private String password;
 

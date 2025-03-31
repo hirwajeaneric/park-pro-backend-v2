@@ -1,7 +1,7 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.User;
-import com.park.parkpro.dto.CreateUserRequest;
+import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ class UserServiceIntegrationTest {
     @Test
     void shouldPersistUserWithHashedPassword() {
         // Arrange
-        CreateUserRequest request = new CreateUserRequest();
+        CreateUserRequestDto request = new CreateUserRequestDto();
         request.setFirstName("Jean");
         request.setLastName("Dupont");
         request.setEmail("jean@example.com");

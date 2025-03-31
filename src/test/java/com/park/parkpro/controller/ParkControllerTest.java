@@ -2,7 +2,7 @@ package com.park.parkpro.controller;
 
 import com.park.parkpro.TestConfig;
 import com.park.parkpro.domain.Park;
-import com.park.parkpro.dto.LoginRequest;
+import com.park.parkpro.dto.LoginRequestDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +30,7 @@ class ParkControllerTest {
     @BeforeEach
     void setUp() {
         // Login with the seeded admin user to get JWT token
-        LoginRequest login = new LoginRequest();
+        LoginRequestDto login = new LoginRequestDto();
         login.setEmail("admin@example.com");
         login.setPassword("adminPass123");
         var loginResponse = restTemplate.postForEntity("/login", login, String.class);

@@ -1,9 +1,9 @@
 package com.park.parkpro.controller;
 
 import com.park.parkpro.TestConfig;
-import com.park.parkpro.dto.CreateUserRequest;
-import com.park.parkpro.dto.LoginRequest;
-import com.park.parkpro.dto.UserResponse;
+import com.park.parkpro.dto.CreateUserRequestDto;
+import com.park.parkpro.dto.LoginRequestDto;
+import com.park.parkpro.dto.UserResponseDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         // Login with the seeded admin user to get JWT token
-        LoginRequest login = new LoginRequest();
+        LoginRequestDto login = new LoginRequestDto();
         login.setEmail("admin@example.com");
         login.setPassword("adminPass123");
         var loginResponse = restTemplate.postForEntity("/login", login, String.class);
@@ -39,7 +39,7 @@ class UserControllerTest {
         adminToken = loginResponse.getBody();
     }
 
-    private HttpEntity<CreateUserRequest> createRequest(CreateUserRequest request) {
+    private HttpEntity<CreateUserRequestDto> createRequest(CreateUserRequestDto request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -49,7 +49,7 @@ class UserControllerTest {
     @Test
     void createUserReturns201() {
         // Arrange
-        CreateUserRequest request = new CreateUserRequest();
+        CreateUserRequestDto request = new CreateUserRequestDto();
         request.setFirstName("Jean");
         request.setLastName("Dupont");
         request.setEmail("landry@example.com");
@@ -57,11 +57,11 @@ class UserControllerTest {
         request.setRole("PARK_MANAGER"); // Using a different role for variety
 
         // Act
-        var response = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request), UserResponse.class);
+        var response = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request), UserResponseDto.class);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        UserResponse user = response.getBody();
+        UserResponseDto user = response.getBody();
         assertNotNull(user);
         assertEquals("landry@example.com", user.getEmail());
         assertEquals("PARK_MANAGER", user.getRole());
@@ -71,17 +71,17 @@ class UserControllerTest {
     @Test
     void createUserWithDuplicateEmailReturns409() {
         // Arrange: Create first user
-        CreateUserRequest request1 = new CreateUserRequest();
+        CreateUserRequestDto request1 = new CreateUserRequestDto();
         request1.setFirstName("Jean");
         request1.setLastName("Dupont");
         request1.setEmail("jean@example.com");
         request1.setPassword("password123");
         request1.setRole("PARK_MANAGER");
-        var firstResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request1), UserResponse.class);
+        var firstResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request1), UserResponseDto.class);
         assertEquals(HttpStatus.CREATED, firstResponse.getStatusCode());
 
         // Attempt duplicate
-        CreateUserRequest request2 = new CreateUserRequest();
+        CreateUserRequestDto request2 = new CreateUserRequestDto();
         request2.setFirstName("Jane");
         request2.setLastName("Doe");
         request2.setEmail("jean@example.com");

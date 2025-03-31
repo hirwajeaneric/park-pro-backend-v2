@@ -1,6 +1,6 @@
 package com.park.parkpro.dto;
 
-public class SignupRequest {
+public class SignupRequestDto {
     private String firstName;
     private String lastName;
     private String email;

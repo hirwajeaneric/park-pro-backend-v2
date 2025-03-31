@@ -1,6 +1,6 @@
 package com.park.parkpro.dto;
 
-public class CreateUserRequest {
+public class CreateUserRequestDto {
     private String firstName;
     private String lastName;
     private String email;
