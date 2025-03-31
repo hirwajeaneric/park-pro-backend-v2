@@ -6,12 +6,14 @@ import com.park.parkpro.repository.ParkRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@WithMockUser(username = "testuser", roles = "ADMIN") // Mock an authorized user
 class ParkServiceIntegrationTest {
 
     @Autowired
