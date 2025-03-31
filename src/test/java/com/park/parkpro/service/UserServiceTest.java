@@ -2,6 +2,7 @@ package com.park.parkpro.service;
 
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequest;
+import com.park.parkpro.dto.SignupRequest;
 import com.park.parkpro.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,5 +91,51 @@ class UserServiceTest {
             userService.createUser(request);
         });
         assertEquals("Invalid role: INVALID_ROLE", exception.getMessage());
+    }
+
+    @Test
+    void shouldSignUpVisitorSuccessfully() {
+        // Arrange
+        SignupRequest request = new SignupRequest();
+        request.setFirstName("Alice");
+        request.setLastName("Smith");
+        request.setEmail("alice@example.com");
+        request.setPassword("visitorPass123");
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("visitorPass123")).thenReturn("hashedVisitorPass");
+        User savedUser = new User();
+        savedUser.setFirstName("Alice");
+        savedUser.setLastName("Smith");
+        savedUser.setEmail("alice@example.com");
+        savedUser.setPassword("hashedVisitorPass");
+        savedUser.setRole("VISITOR");
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        // Act
+        User result = userService.signup(request);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("alice@example.com", result.getEmail());
+        assertEquals("VISITOR", result.getRole());
+        assertEquals("hashedVisitorPass", result.getPassword());
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void shouldThrowExceptionForDuplicateEmailDuringSignup() {
+        // Arrange
+        SignupRequest request = new SignupRequest();
+        request.setEmail("alice@example.com");
+        request.setPassword("visitorPass123");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(new User()));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.signup(request);
+        });
+        assertEquals("Email 'alice@example.com' is already taken", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
     }
 }

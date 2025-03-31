@@ -2,6 +2,7 @@ package com.park.parkpro.service;
 
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequest;
+import com.park.parkpro.dto.SignupRequest;
 import com.park.parkpro.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,26 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
+        return userRepository.save(user);
+    }
+
+    public User signup(SignupRequest request) {
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already taken");
+        }
+
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole("VISITOR"); // Fixed role for signup
         return userRepository.save(user);
     }
 }
