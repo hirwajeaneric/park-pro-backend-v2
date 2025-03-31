@@ -37,13 +37,13 @@ class ParkServiceIntegrationTest {
     @Test
     void shouldFailOnDuplicateName() {
         // Arrange
-        Park park1 = new Park("Loango", "Southwest Gabon", "Coastal park");
+        Park park1 = new Park("Lopé National Park", "Central Gabon", "UNESCO site with ancient forests");
         parkService.createPark(park1);
 
-        Park park2 = new Park("Loango", "Southwest Gabon", "Coastal park");
+        Park park2 = new Park("Lopé National Park", "Central Gabon", "UNESCO site with ancient forests");
 
         // Act & Assert
         DuplicateParkException exception = assertThrows(DuplicateParkException.class, () -> parkService.createPark(park2));
-        assertEquals("Park with name 'Loango' already exists", exception.getMessage());
+        assertEquals("Park with name 'Lopé National Park' already exists", exception.getMessage());
     }
 }

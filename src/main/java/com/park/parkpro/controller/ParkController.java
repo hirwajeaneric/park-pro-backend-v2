@@ -1,4 +1,4 @@
-package com.park.parkpro;
+package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.service.ParkService;
