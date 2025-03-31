@@ -38,11 +38,17 @@ class ParkControllerTest {
         adminToken = loginResponse.getBody();
     }
 
-    private HttpEntity<Park> createRequest(Park park) {
+    private HttpEntity<?> createRequest(Park park) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         return new HttpEntity<>(park, headers);
+    }
+
+    private HttpEntity<?> createGetRequest() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        return new HttpEntity<>(headers);
     }
 
     @Test
@@ -69,13 +75,10 @@ class ParkControllerTest {
         Park park1 = new Park("Ivindo", "Southwest Gabon", "Coastal park");
         var firstResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park1), Park.class);
         assertEquals(HttpStatus.CREATED, firstResponse.getStatusCode());
-
         // Attempt duplicate
         Park park2 = new Park("Ivindo", "New Location", "Different desc");
-
         // Act
         var response = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park2), String.class);
-
         // Assert
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertTrue(response.getBody().contains("Park with name 'Ivindo' already exists"));
@@ -86,10 +89,34 @@ class ParkControllerTest {
         // Arrange
         Park park = new Park("Lelo", "Southeast Gabon", "Rain forest and park");
         HttpEntity<Park> request = new HttpEntity<>(park);
-
         // Act
         var response = restTemplate.exchange("/api/parks", HttpMethod.POST, request, String.class);
+        // Assert
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
 
+    @Test
+    void getParksReturns200WithParkList() {
+        // Arrange: Create some parks
+        Park park1 = new Park("Abc Park", "Southwest Gabon", "Coastal park");
+        restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park1), Park.class);
+        Park park2 = new Park("Xyz Park", "Southwest Gabon", "Coastal park");
+        restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park2), Park.class);
+        // Act
+        var response = restTemplate.exchange("/api/parks", HttpMethod.GET, createGetRequest(), Park[].class);
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Park[] parks = response.getBody();
+        assertNotNull(parks);
+        assertEquals(2, parks.length);
+        assertEquals("Abc Park", parks[0].getName());
+        assertEquals("Xyz Park", parks[1].getName());
+    }
+
+    @Test
+    void getParkWithoutAuthReturns401() {
+        // Act
+        var response = restTemplate.exchange("/api/parks", HttpMethod.GET, new HttpEntity<>(null), String.class);
         // Assert
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }

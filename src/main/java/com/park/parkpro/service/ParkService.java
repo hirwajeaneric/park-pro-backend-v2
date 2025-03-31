@@ -5,6 +5,8 @@ import com.park.parkpro.exception.DuplicateParkException;
 import com.park.parkpro.repository.ParkRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ParkService {
     private final ParkRepository parkRepository;
@@ -28,5 +30,9 @@ public class ParkService {
         }
         // Save the park
         return parkRepository.save(park);
+    }
+
+    public List<Park> getAllParks() {
+        return parkRepository.findAll();
     }
 }

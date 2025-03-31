@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -68,5 +69,17 @@ class ParkServiceTest {
             parkService.createPark(park);
         });
         assertEquals("Park name cannot be empty", exception.getMessage());
+    }
+
+    @Test
+    void shouldGetAllParks() {
+        Park park1 = new Park("Park1", "Southwest Gabon", "Coastal park");
+        Park park2 = new Park("Park2", "Southeast Gabon", "Rainforest park");
+        when(parkRepository.findAll()).thenReturn(List.of(park1, park2));
+
+        List<Park> parks = parkService.getAllParks();
+        assertEquals(2, parks.size());
+        assertEquals("Park1", parks.get(0).getName());
+        assertEquals("Park2", parks.get(1).getName());
     }
 }
