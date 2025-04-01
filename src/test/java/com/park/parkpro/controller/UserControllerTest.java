@@ -1,6 +1,8 @@
 package com.park.parkpro.controller;
 
 import com.park.parkpro.TestConfig;
+import com.park.parkpro.domain.Park;
+import com.park.parkpro.dto.CreateParkRequestDto;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.LoginRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
@@ -16,6 +18,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -47,6 +51,13 @@ class UserControllerTest {
     }
 
     private HttpEntity<CreateUserRequestDto> createRequest(CreateUserRequestDto request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return new HttpEntity<>(request, headers);
+    }
+
+    private HttpEntity<CreateParkRequestDto> createParkRequest(CreateParkRequestDto request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -94,5 +105,30 @@ class UserControllerTest {
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertTrue(response.getBody().contains("Email 'jean@example.com' is already taken"));
+    }
+
+    @Test
+    void assignParkToUserReturns200() {
+        // Create a user
+        CreateUserRequestDto userRequest = new CreateUserRequestDto();
+        userRequest.setFirstName("Manager");
+        userRequest.setLastName("One");
+        userRequest.setEmail("manager@example.com");
+        userRequest.setPassword("pass123");
+        userRequest.setRole("PARK_MANAGER");
+        var userResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(userRequest), UserResponseDto.class);
+        UUID userId = userResponse.getBody().getId();
+
+        // Create a park
+        CreateParkRequestDto parkRequest = new CreateParkRequestDto("Loango", "Southwest Gabon", "Coastal park");
+        var parkResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createParkRequest(parkRequest), Park.class);
+        UUID parkId = parkResponse.getBody().getId();
+
+        // Assign park to user
+        var assignResponse = restTemplate.exchange("/api/users/" + userId + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
+
+        assertEquals(HttpStatus.OK, assignResponse.getStatusCode());
+
+        // Verify assignment (could add a GET endpoint later to check)
     }
 }

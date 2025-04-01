@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -44,4 +46,21 @@ public class User {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @ManyToMany
+    @JoinTable(name="user_park", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "park_id"))
+    private Set<Park> parks = new HashSet<>();
+
+    public User() {}
+
+    // Add method to manage the relationship
+    public void addPark(Park park) {
+        this.parks.add(park);
+        park.getUsers().add(this);
+    }
+
+    public void removePark(Park park) {
+        this.parks.remove(park);
+        park.getUsers().remove(this);
+    }
 }

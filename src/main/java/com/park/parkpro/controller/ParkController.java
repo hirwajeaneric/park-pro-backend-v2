@@ -1,7 +1,10 @@
 package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.Park;
+import com.park.parkpro.dto.PageResponseDto;
+import com.park.parkpro.dto.PatchParkRequestDto;
 import com.park.parkpro.service.ParkService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,9 +31,19 @@ public class ParkController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Park>> getAllParks() {
-        List<Park> parks = parkService.getAllParks();
-        return ResponseEntity.ok(parks);
+    public ResponseEntity<PageResponseDto<Park>> getAllParks(
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Park> parksPage = parkService.getAllParks(name, page, size);
+        PageResponseDto<Park> response = new PageResponseDto<>(
+                parksPage.getContent(),
+                parksPage.getTotalElements(),
+                parksPage.getTotalPages(),
+                parksPage.getNumber(),
+                parksPage.getSize()
+        );
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -42,6 +55,12 @@ public class ParkController {
     @PutMapping("/{id}")
     public ResponseEntity<Park> updatePark(@PathVariable UUID id, @RequestBody Park park) {
         Park updatedPark = parkService.updatePark(id, park);
+        return ResponseEntity.ok(updatedPark);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<Park> patchPark(@PathVariable UUID id, @RequestBody PatchParkRequestDto patchRequest) {
+        Park updatedPark = parkService.patchPark(id, patchRequest);
         return ResponseEntity.ok(updatedPark);
     }
 

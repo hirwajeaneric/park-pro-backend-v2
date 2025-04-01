@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -24,5 +25,11 @@ public class UserController {
         User user = userService.createUser(request);
         UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
+    }
+
+    @PostMapping("/{userId}/parks/{parkId}")
+    public ResponseEntity<Void> assignParkToUser(@PathVariable UUID userId, @PathVariable UUID parkId) {
+        userService.assignParkToUser(userId, parkId);
+        return ResponseEntity.ok().build();
     }
 }

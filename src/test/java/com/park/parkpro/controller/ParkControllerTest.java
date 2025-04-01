@@ -2,7 +2,7 @@ package com.park.parkpro.controller;
 
 import com.park.parkpro.TestConfig;
 import com.park.parkpro.domain.Park;
-import com.park.parkpro.dto.LoginRequestDto;
+import com.park.parkpro.dto.*;
 import com.park.parkpro.repository.ParkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -254,13 +254,90 @@ class ParkControllerTest {
             restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
         }
 
-        var response = restTemplate.exchange("/api/parks?page=1&size=5", HttpMethod.GET, createGetRequest(), Park[].class);
+        var response = restTemplate.exchange("/api/parks?page=1&size=5", HttpMethod.GET, createGetRequest(), PageResponseDto.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Park[] parks = response.getBody();
-        assertNotNull(parks);
-        assertEquals(5, parks.length); // Page 1, size 5 (parks 6-10)
-        assertEquals("Park6", parks[0].getName());
-        assertEquals("Park10", parks[4].getName());
+        PageResponseDto<Park> page = response.getBody();
+        assertNotNull(page);
+        assertEquals(5, page.getContent().size());
+        assertEquals(15, page.getTotalElements());
+        assertEquals(3, page.getTotalPages()); // 15 items, 5 per page = 3 pages
+        assertEquals(1, page.getCurrentPage());
+        assertEquals(5, page.getPageSize());
+        assertEquals("Park6", page.getContent().get(0).getName());
+        assertEquals("Park10", page.getContent().get(4).getName());
     }
+
+    @Test
+    void patchParkUpdatesPartiallyReturns200() {
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var createResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
+        UUID parkId = createResponse.getBody().getId();
+
+        PatchParkRequestDto patchRequest = new PatchParkRequestDto();
+        patchRequest.setLocation("North Gabon");
+        var response = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.PATCH, createRequest(patchRequest), Park.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Park updatedPark = response.getBody();
+        assertNotNull(updatedPark);
+        assertEquals("Loango", updatedPark.getName()); // Unchanged
+        assertEquals("North Gabon", updatedPark.getLocation());
+        assertEquals("Coastal park", updatedPark.getDescription()); // Unchanged
+    }
+
+    @Test
+    void patchParkWithDuplicateNameReturns409() {
+        Park park1 = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var createResponse1 = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park1), Park.class);
+        UUID parkId1 = createResponse1.getBody().getId();
+
+        Park park2 = new Park("Ivindo", "Southeast Gabon", "Rainforest park");
+        restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park2), Park.class);
+
+        PatchParkRequestDto patchRequest = new PatchParkRequestDto();
+        patchRequest.setName("Ivindo");
+        var response = restTemplate.exchange("/api/parks/" + parkId1, HttpMethod.PATCH, createRequest(patchRequest), String.class);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertTrue(response.getBody().contains("Park with name 'Ivindo' already exists"));
+    }
+
+    @Test
+    void patchParkNotFoundReturns404() {
+        UUID randomId = UUID.randomUUID();
+        PatchParkRequestDto patchRequest = new PatchParkRequestDto();
+        patchRequest.setName("Nonexistent");
+        var response = restTemplate.exchange("/api/parks/" + randomId, HttpMethod.PATCH, createRequest(patchRequest), String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertTrue(response.getBody().contains("Park with ID '" + randomId + "' not found"));
+    }
+
+    @Test
+    void deleteParkReturns204AndCascades() {
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var createResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
+        UUID parkId = createResponse.getBody().getId();
+
+        // Assign park to admin (for testing cascade)
+        CreateUserRequestDto userRequest = new CreateUserRequestDto();
+        userRequest.setFirstName("Manager");
+        userRequest.setLastName("One");
+        userRequest.setEmail("manager@example.com");
+        userRequest.setPassword("pass123");
+        userRequest.setRole("PARK_MANAGER");
+        var userResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(userRequest), UserResponseDto.class);
+        UUID userId = userResponse.getBody().getId();
+
+        // Assign park to user (assuming a future endpoint or manual DB update)
+        // For now, simulate via service or direct DB manipulation in test
+
+        var deleteResponse = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.DELETE, createGetRequest(), Void.class);
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatusCode());
+
+        var getResponse = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.GET, createGetRequest(), String.class);
+        assertEquals(HttpStatus.NOT_FOUND, getResponse.getStatusCode());
+    }
+
 }

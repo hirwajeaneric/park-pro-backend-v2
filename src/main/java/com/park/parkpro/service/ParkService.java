@@ -1,8 +1,12 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Park;
+import com.park.parkpro.dto.PatchParkRequestDto;
 import com.park.parkpro.exception.DuplicateParkException;
 import com.park.parkpro.repository.ParkRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,6 +42,14 @@ public class ParkService {
         return parkRepository.findAll();
     }
 
+    public Page<Park> getAllParks(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        if (name != null && !name.trim().isEmpty()) {
+            return parkRepository.findByNameContainingIgnoreCase(name.trim(), pageable);
+        }
+        return parkRepository.findAll(pageable);
+    }
+
     public Park getParkById(UUID id) {
         return parkRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Park with id '" + id + "' does not exist"));
@@ -58,6 +70,29 @@ public class ParkService {
         existingPark.setName(updatedPark.getName());
         existingPark.setLocation(updatedPark.getLocation());
         existingPark.setDescription(updatedPark.getDescription());
+        existingPark.setUpdatedAt(LocalDateTime.now());
+        return parkRepository.save(existingPark);
+    }
+
+    public Park patchPark(UUID id, PatchParkRequestDto patchRequest) {
+        Park existingPark = parkRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Park with ID '" + id + "' not found"));
+
+        if (patchRequest.getName() != null && !patchRequest.getName().trim().isEmpty()) {
+            parkRepository.findByName(patchRequest.getName())
+                    .ifPresent(p -> {
+                        if (!p.getId().equals(id)) {
+                            throw new DuplicateParkException("Park with name '" + patchRequest.getName() + "' already exists");
+                        }
+                    });
+            existingPark.setName(patchRequest.getName().trim());
+        }
+        if (patchRequest.getLocation() != null && !patchRequest.getLocation().trim().isEmpty()) {
+            existingPark.setLocation(patchRequest.getLocation().trim());
+        }
+        if (patchRequest.getDescription() != null) {
+            existingPark.setDescription(patchRequest.getDescription());
+        }
         existingPark.setUpdatedAt(LocalDateTime.now());
         return parkRepository.save(existingPark);
     }

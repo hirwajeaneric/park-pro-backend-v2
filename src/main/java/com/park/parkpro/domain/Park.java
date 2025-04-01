@@ -2,8 +2,13 @@ package com.park.parkpro.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -29,6 +34,10 @@ public class Park {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @ManyToMany(mappedBy = "parks")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Set<User> users = new HashSet<>();
+
     public Park() {}
 
     public Park(String name, String location, String description) {
@@ -36,4 +45,5 @@ public class Park {
         this.location = location;
         this.description = description;
     }
+
 }

@@ -1,24 +1,29 @@
 package com.park.parkpro.service;
 
+import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.exception.IllegalArgumentException;
+import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private static final Set<String> VALID_ROLES = Set.of("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "VISITOR", "GOVERNMENT_OFFICER", "AUDITOR");
+    private final ParkRepository parkRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ParkRepository parkRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.parkRepository = parkRepository;
     }
 
     public User createUser(CreateUserRequestDto request) {
@@ -66,5 +71,14 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("VISITOR"); // Fixed role for signup
         return userRepository.save(user);
+    }
+
+    public void assignParkToUser(UUID userId, UUID parkId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with ID '" + userId + "' not found"));
+        Park park = parkRepository.findById(parkId)
+                .orElseThrow(() -> new IllegalArgumentException("Park with ID '" + parkId + "' not found"));
+        user.addPark(park);
+        userRepository.save(user);
     }
 }
