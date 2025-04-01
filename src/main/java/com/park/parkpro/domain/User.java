@@ -1,16 +1,19 @@
 package com.park.parkpro.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(name = "\"user\"")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -31,10 +34,6 @@ public class User {
     @Column(nullable = false, length = 30)
     private String role;
 
-    @ManyToOne
-    @JoinColumn(name = "park_id")
-    private Park park;
-
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -47,20 +46,20 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @ManyToMany
-    @JoinTable(name="user_park", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "park_id"))
-    private Set<Park> parks = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "park_id")
+    private Park park;
 
-    public User() {}
-
-    // Add method to manage the relationship
-    public void addPark(Park park) {
-        this.parks.add(park);
-        park.getUsers().add(this);
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, email);
     }
 
-    public void removePark(Park park) {
-        this.parks.remove(park);
-        park.getUsers().remove(this);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id) && Objects.equals(email, user.email);
     }
 }

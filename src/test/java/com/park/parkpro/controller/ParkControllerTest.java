@@ -316,11 +316,6 @@ class ParkControllerTest {
 
     @Test
     void deleteParkReturns204AndCascades() {
-        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
-        var createResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
-        UUID parkId = createResponse.getBody().getId();
-
-        // Assign park to admin (for testing cascade)
         CreateUserRequestDto userRequest = new CreateUserRequestDto();
         userRequest.setFirstName("Manager");
         userRequest.setLastName("One");
@@ -330,14 +325,16 @@ class ParkControllerTest {
         var userResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(userRequest), UserResponseDto.class);
         UUID userId = userResponse.getBody().getId();
 
-        // Assign park to user (assuming a future endpoint or manual DB update)
-        // For now, simulate via service or direct DB manipulation in test
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var createResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
+        UUID parkId = createResponse.getBody().getId();
+
+        restTemplate.exchange("/api/users/" + userId + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
 
         var deleteResponse = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.DELETE, createGetRequest(), Void.class);
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatusCode());
 
-        var getResponse = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.GET, createGetRequest(), String.class);
-        assertEquals(HttpStatus.NOT_FOUND, getResponse.getStatusCode());
+        var getParkResponse = restTemplate.exchange("/api/parks/" + parkId, HttpMethod.GET, createGetRequest(), String.class);
+        assertEquals(HttpStatus.NOT_FOUND, getParkResponse.getStatusCode());
     }
-
 }

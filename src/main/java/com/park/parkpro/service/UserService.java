@@ -10,6 +10,7 @@ import com.park.parkpro.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -78,7 +79,19 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User with ID '" + userId + "' not found"));
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new IllegalArgumentException("Park with ID '" + parkId + "' not found"));
-        user.addPark(park);
+        user.setPark(park);
         userRepository.save(user);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public List<User> getUsersByRole(String role) {
+        return userRepository.findByRole(role);
+    }
+
+    public List<User> getUsersByParkId(UUID parkId) {
+        return userRepository.findByParkId(parkId);
     }
 }

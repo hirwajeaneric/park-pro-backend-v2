@@ -2,7 +2,6 @@ package com.park.parkpro.controller;
 
 import com.park.parkpro.TestConfig;
 import com.park.parkpro.domain.Park;
-import com.park.parkpro.dto.CreateParkRequestDto;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.LoginRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
@@ -19,6 +18,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,10 +38,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Clear the user table before each test
         userRepository.deleteAll();
-
-        // Login with the seeded admin user to get JWT token (TestConfig re-seeds it)
         LoginRequestDto login = new LoginRequestDto();
         login.setEmail("admin@example.com");
         login.setPassword("adminPass123");
@@ -50,18 +47,18 @@ class UserControllerTest {
         adminToken = loginResponse.getBody();
     }
 
-    private HttpEntity<CreateUserRequestDto> createRequest(CreateUserRequestDto request) {
+    private HttpEntity<?> createRequest(Object request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         return new HttpEntity<>(request, headers);
     }
 
-    private HttpEntity<CreateParkRequestDto> createParkRequest(CreateParkRequestDto request) {
+    private HttpEntity<?> createGetRequest() {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(request, headers);
+        return new HttpEntity<>(headers);
     }
 
     @Test
@@ -109,7 +106,6 @@ class UserControllerTest {
 
     @Test
     void assignParkToUserReturns200() {
-        // Create a user
         CreateUserRequestDto userRequest = new CreateUserRequestDto();
         userRequest.setFirstName("Manager");
         userRequest.setLastName("One");
@@ -119,16 +115,110 @@ class UserControllerTest {
         var userResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(userRequest), UserResponseDto.class);
         UUID userId = userResponse.getBody().getId();
 
-        // Create a park
-        CreateParkRequestDto parkRequest = new CreateParkRequestDto("Loango", "Southwest Gabon", "Coastal park");
-        var parkResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createParkRequest(parkRequest), Park.class);
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var parkResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
         UUID parkId = parkResponse.getBody().getId();
 
-        // Assign park to user
         var assignResponse = restTemplate.exchange("/api/users/" + userId + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
 
         assertEquals(HttpStatus.OK, assignResponse.getStatusCode());
+    }
 
-        // Verify assignment (could add a GET endpoint later to check)
+    @Test
+    void getAllUsersReturns200() {
+        CreateUserRequestDto request1 = new CreateUserRequestDto();
+        request1.setFirstName("Jean");
+        request1.setLastName("Dupont");
+        request1.setEmail("jean@example.com");
+        request1.setPassword("password123");
+        request1.setRole("PARK_MANAGER");
+        restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request1), UserResponseDto.class);
+
+        CreateUserRequestDto request2 = new CreateUserRequestDto();
+        request2.setFirstName("Jane");
+        request2.setLastName("Doe");
+        request2.setEmail("jane@example.com");
+        request2.setPassword("pass456");
+        request2.setRole("FINANCE_OFFICER");
+        restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request2), UserResponseDto.class);
+
+        var response = restTemplate.exchange("/api/users", HttpMethod.GET, createGetRequest(), UserResponseDto[].class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        UserResponseDto[] users = response.getBody();
+        assertNotNull(users);
+        assertEquals(2, users.length);
+        assertTrue(List.of(users).stream().anyMatch(u -> u.getEmail().equals("jean@example.com")));
+        assertTrue(List.of(users).stream().anyMatch(u -> u.getEmail().equals("jane@example.com")));
+    }
+
+    @Test
+    void getUsersByRoleReturns200() {
+        CreateUserRequestDto request1 = new CreateUserRequestDto();
+        request1.setFirstName("Jean");
+        request1.setLastName("Dupont");
+        request1.setEmail("jean@example.com");
+        request1.setPassword("password123");
+        request1.setRole("PARK_MANAGER");
+        restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request1), UserResponseDto.class);
+
+        CreateUserRequestDto request2 = new CreateUserRequestDto();
+        request2.setFirstName("Jane");
+        request2.setLastName("Doe");
+        request2.setEmail("jane@example.com");
+        request2.setPassword("pass456");
+        request2.setRole("FINANCE_OFFICER");
+        restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request2), UserResponseDto.class);
+
+        var response = restTemplate.exchange("/api/users?role=PARK_MANAGER", HttpMethod.GET, createGetRequest(), UserResponseDto[].class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        UserResponseDto[] users = response.getBody();
+        assertNotNull(users);
+        assertEquals(1, users.length);
+        assertEquals("jean@example.com", users[0].getEmail());
+        assertEquals("PARK_MANAGER", users[0].getRole());
+    }
+
+    @Test
+    void getUsersByParkIdReturns200() {
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var parkResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
+        UUID parkId = parkResponse.getBody().getId();
+
+        CreateUserRequestDto request1 = new CreateUserRequestDto();
+        request1.setFirstName("Jean");
+        request1.setLastName("Dupont");
+        request1.setEmail("jean@example.com");
+        request1.setPassword("password123");
+        request1.setRole("PARK_MANAGER");
+        var userResponse1 = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request1), UserResponseDto.class);
+        UUID userId1 = userResponse1.getBody().getId();
+        restTemplate.exchange("/api/users/" + userId1 + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
+
+        CreateUserRequestDto request2 = new CreateUserRequestDto();
+        request2.setFirstName("Jane");
+        request2.setLastName("Doe");
+        request2.setEmail("jane@example.com");
+        request2.setPassword("pass456");
+        request2.setRole("PARK_MANAGER");
+        var userResponse2 = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request2), UserResponseDto.class);
+        UUID userId2 = userResponse2.getBody().getId();
+        restTemplate.exchange("/api/users/" + userId2 + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
+
+        var response = restTemplate.exchange("/api/users?parkId=" + parkId, HttpMethod.GET, createGetRequest(), UserResponseDto[].class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        UserResponseDto[] users = response.getBody();
+        assertNotNull(users);
+        assertEquals(2, users.length);
+        assertTrue(List.of(users).stream().anyMatch(u -> u.getEmail().equals("jean@example.com")));
+        assertTrue(List.of(users).stream().anyMatch(u -> u.getEmail().equals("jane@example.com")));
+    }
+
+    @Test
+    void getUsersWithNoAuthReturns401() {
+        var response = restTemplate.exchange("/api/users", HttpMethod.GET, new HttpEntity<>(null), String.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 }

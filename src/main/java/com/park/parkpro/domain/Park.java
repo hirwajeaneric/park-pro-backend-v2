@@ -2,18 +2,23 @@ package com.park.parkpro.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table(name = "park")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Park {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,16 +39,22 @@ public class Park {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @ManyToMany(mappedBy = "parks")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private Set<User> users = new HashSet<>();
-
-    public Park() {}
-
     public Park(String name, String location, String description) {
         this.name = name;
         this.location = location;
         this.description = description;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Park)) return false;
+        Park park = (Park) o;
+        return Objects.equals(id, park.id) && Objects.equals(name, park.name);
+    }
 }
