@@ -3,6 +3,7 @@ package com.park.parkpro.controller;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
+import com.park.parkpro.security.JwtUtil;
 import com.park.parkpro.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +18,11 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping
@@ -56,5 +59,29 @@ public class UserController {
                     .collect(Collectors.toList());
         }
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        if (!jwtUtil.validateToken(token)) {
+            throw new IllegalArgumentException("Invalid JWT token");
+        }
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userService.getUserByEmail(email);
+        UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
+        assert parkId != null;
+        UserResponseDto response = new UserResponseDto(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole(),
+                parkId
+        );
+        return ResponseEntity.ok(response);
     }
 }

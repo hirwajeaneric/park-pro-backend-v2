@@ -1,29 +1,32 @@
 package com.park.parkpro.service;
 
-import com.park.parkpro.domain.User;
-import com.park.parkpro.repository.UserRepository;
 import com.park.parkpro.security.JwtUtil;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.park.parkpro.security.UserDetailsServiceImpl;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    public AuthService(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+        this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
     }
 
     public String login(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
-        }
-        return jwtUtil.generateToken(user.getEmail(), user.getRole());
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password)
+        );
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String role = userDetails.getAuthorities().iterator().next().getAuthority().substring(5); // Remove "ROLE_"
+        return jwtUtil.generateToken(email, role);
     }
 }

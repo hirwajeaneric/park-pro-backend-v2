@@ -57,7 +57,12 @@ class UserControllerTest {
     private HttpEntity<?> createGetRequest() {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return new HttpEntity<>(headers);
+    }
+
+    private HttpEntity<?> createGetRequestWithToken(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
         return new HttpEntity<>(headers);
     }
 
@@ -220,5 +225,41 @@ class UserControllerTest {
     void getUsersWithNoAuthReturns401() {
         var response = restTemplate.exchange("/api/users", HttpMethod.GET, new HttpEntity<>(null), String.class);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void getCurrentUserReturns200() {
+        CreateUserRequestDto request = new CreateUserRequestDto();
+        request.setFirstName("Jean");
+        request.setLastName("Dupont");
+        request.setEmail("jean@example.com");
+        request.setPassword("password123");
+        request.setRole("PARK_MANAGER");
+        var createResponse = restTemplate.exchange("/api/users", HttpMethod.POST, createRequest(request), UserResponseDto.class);
+        UUID userId = createResponse.getBody().getId();
+
+        Park park = new Park("Loango", "Southwest Gabon", "Coastal park");
+        var parkResponse = restTemplate.exchange("/api/parks", HttpMethod.POST, createRequest(park), Park.class);
+        UUID parkId = parkResponse.getBody().getId();
+
+        restTemplate.exchange("/api/users/" + userId + "/parks/" + parkId, HttpMethod.POST, createRequest(null), Void.class);
+
+        LoginRequestDto loginRequest = new LoginRequestDto();
+        loginRequest.setEmail("jean@example.com");
+        loginRequest.setPassword("password123");
+        var loginResponse = restTemplate.postForEntity("/login", loginRequest, String.class);
+        String userToken = loginResponse.getBody();
+
+        var response = restTemplate.exchange("/api/users/me", HttpMethod.GET, createGetRequestWithToken(userToken), UserResponseDto.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        UserResponseDto user = response.getBody();
+        assertNotNull(user);
+        assertEquals(userId, user.getId());
+        assertEquals("jean@example.com", user.getEmail());
+        assertEquals("Jean", user.getFirstName());
+        assertEquals("Dupont", user.getLastName());
+        assertEquals("PARK_MANAGER", user.getRole());
+        assertEquals(parkId, user.getParkId());
     }
 }

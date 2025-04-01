@@ -7,8 +7,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
+
     private final UserRepository userRepository;
 
     public UserDetailsServiceImpl(UserRepository userRepository) {
@@ -18,10 +21,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         com.park.parkpro.domain.User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
         return User.withUsername(user.getEmail())
                 .password(user.getPassword())
-                .roles(user.getRole())
+                .authorities("ROLE_" + user.getRole())
                 .build();
     }
 }
