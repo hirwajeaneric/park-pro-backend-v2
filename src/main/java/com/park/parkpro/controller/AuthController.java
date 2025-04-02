@@ -30,7 +30,9 @@ public class AuthController {
     @PostMapping("/api/signup")
     public ResponseEntity<UserResponseDto> signup(@RequestBody SignupRequestDto request) {
         var user = userService.signup(request);
-        UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
+        UserResponseDto response = new UserResponseDto(
+                user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), null
+        );
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
     }
 }

@@ -3,9 +3,10 @@ package com.park.parkpro.controller;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
+import com.park.parkpro.exception.UnauthorizedException;
+import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.security.JwtUtil;
 import com.park.parkpro.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(@RequestBody CreateUserRequestDto request) {
         User user = userService.createUser(request);
-        UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
+        UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), null);
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
     }
 
@@ -45,18 +46,18 @@ public class UserController {
             @RequestParam(required = false) UUID parkId) {
         List<UserResponseDto> users;
         if (role != null && parkId != null) {
-            throw new IllegalArgumentException("Cannot filter by both role and parkId simultaneously");
+            throw new BadRequestException("Cannot filter by both role and parkId simultaneously");
         } else if (role != null) {
             users = userService.getUsersByRole(role).stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole()))
+                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
                     .collect(Collectors.toList());
         } else if (parkId != null) {
             users = userService.getUsersByParkId(parkId).stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole()))
+                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
                     .collect(Collectors.toList());
         } else {
             users = userService.getAllUsers().stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole()))
+                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
                     .collect(Collectors.toList());
         }
         return ResponseEntity.ok(users);
@@ -64,27 +65,19 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-        System.out.println("Entering getCurrentUser with authHeader: " + authHeader);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("Invalid or missing Authorization header");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        System.out.println("Extracted token: " + token);
         if (!jwtUtil.validateToken(token)) {
-            System.out.println("Token validation failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            throw new UnauthorizedException("Invalid or expired JWT token");
         }
         String email = jwtUtil.getEmailFromToken(token);
-        System.out.println("Token validated, email: " + email);
         User user = userService.getUserByEmail(email);
-        System.out.println("User retrieved: " + user.getFirstName() + " " + user.getLastName());
         UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
-        System.out.println("Park id: " + parkId);
         UserResponseDto response = new UserResponseDto(
                 user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId
         );
-        System.out.println("Returning response for: " + email);
         return ResponseEntity.ok(response);
     }
 }
