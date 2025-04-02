@@ -1,10 +1,23 @@
 package com.park.parkpro.dto;
 
+import jakarta.validation.constraints.*;
+
 public class CreateUserRequestDto {
+    @NotBlank(message = "First name is required")
     private String firstName;
+
+    @NotBlank(message = "Last name is required")
     private String lastName;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be a valid email address")
     private String email;
+
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
+
+    @NotBlank(message = "Role is required")
     private String role;
 
     // Getters and setters

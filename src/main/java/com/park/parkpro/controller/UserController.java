@@ -7,6 +7,7 @@ import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.security.JwtUtil;
 import com.park.parkpro.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +29,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponseDto> createUser(@RequestBody CreateUserRequestDto request) {
+    public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody CreateUserRequestDto request) {
         User user = userService.createUser(request);
         UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), null);
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);

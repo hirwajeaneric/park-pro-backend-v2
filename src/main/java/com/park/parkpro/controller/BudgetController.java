@@ -5,6 +5,7 @@ import com.park.parkpro.dto.BudgetResponseDto;
 import com.park.parkpro.dto.CreateBudgetRequestDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.BudgetService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +25,7 @@ public class BudgetController {
     @PostMapping("/parks/{parkId}/budgets")
     public ResponseEntity<BudgetResponseDto> createBudget(
             @PathVariable UUID parkId,
-            @RequestBody CreateBudgetRequestDto request,
+            @Valid @RequestBody CreateBudgetRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
@@ -38,7 +39,7 @@ public class BudgetController {
     @PatchMapping("/budgets/{budgetId}")
     public ResponseEntity<BudgetResponseDto> updateBudget(
             @PathVariable UUID budgetId,
-            @RequestBody CreateBudgetRequestDto request,
+            @Valid @RequestBody CreateBudgetRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");

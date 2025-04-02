@@ -5,6 +5,7 @@ import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
 import com.park.parkpro.service.AuthService;
 import com.park.parkpro.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +23,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDto loginRequest) {
+    public ResponseEntity<String> login(@Valid @RequestBody LoginRequestDto loginRequest) {
         String token = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
         return ResponseEntity.ok(token);
     }
 
     @PostMapping("/api/signup")
-    public ResponseEntity<UserResponseDto> signup(@RequestBody SignupRequestDto request) {
+    public ResponseEntity<UserResponseDto> signup(@Valid @RequestBody SignupRequestDto request) {
         var user = userService.signup(request);
         UserResponseDto response = new UserResponseDto(
                 user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), null
