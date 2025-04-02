@@ -1,16 +1,15 @@
 package com.park.parkpro.config;
 
 import com.park.parkpro.security.JwtFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -40,8 +39,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/reject").hasRole("GOVERNMENT_OFFICER")
+                        .requestMatchers("/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "PARK_MANAGER", "AUDITOR") // GET
+                        .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/budgets/{budgetId}/categories/{categoryId}").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/budgets/{budgetId}/categories/{categoryId}").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers("/api/parks/{parkId}/budgets/**").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
-                        .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_MANAGER")
+                        .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
