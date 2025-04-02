@@ -5,6 +5,7 @@ import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
 import com.park.parkpro.security.JwtUtil;
 import com.park.parkpro.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,25 +64,27 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        System.out.println("Entering getCurrentUser with authHeader: " + authHeader);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
+            System.out.println("Invalid or missing Authorization header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        String token = authHeader.substring(7);
+        System.out.println("Extracted token: " + token);
         if (!jwtUtil.validateToken(token)) {
-            throw new IllegalArgumentException("Invalid JWT token");
+            System.out.println("Token validation failed");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
         String email = jwtUtil.getEmailFromToken(token);
+        System.out.println("Token validated, email: " + email);
         User user = userService.getUserByEmail(email);
+        System.out.println("User retrieved: " + user.getFirstName() + " " + user.getLastName());
         UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
-        assert parkId != null;
+        System.out.println("Park id: " + parkId);
         UserResponseDto response = new UserResponseDto(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getRole(),
-                parkId
+                user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId
         );
+        System.out.println("Returning response for: " + email);
         return ResponseEntity.ok(response);
     }
 }

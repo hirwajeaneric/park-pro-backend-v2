@@ -50,9 +50,11 @@ public class JwtUtil {
                     .verifyWith(Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)))
                     .build()
                     .parseSignedClaims(token);
+            System.out.println("Token validated successfully for: " + getEmailFromToken(token));
             return true;
         } catch (Exception e) {
-            return false; // Invalid token (expired, tampered, etc.)
+            System.out.println("Token validation failed: " + e.getMessage());
+            return false;
         }
     }
 }

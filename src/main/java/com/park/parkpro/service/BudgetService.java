@@ -3,6 +3,10 @@ package com.park.parkpro.service;
 import com.park.parkpro.domain.Budget;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
+import com.park.parkpro.exception.BadRequestException;
+import com.park.parkpro.exception.ConflictException;
+import com.park.parkpro.exception.ForbiddenException;
+import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.BudgetRepository;
 import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
@@ -33,19 +37,25 @@ public class BudgetService {
     public Budget createBudget(UUID parkId, Integer fiscalYear, BigDecimal totalAmount, String status, String token) {
         String email = jwtUtil.getEmailFromToken(token);
         User createdBy = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         Park park = parkRepository.findById(parkId)
-                .orElseThrow(() -> new IllegalArgumentException("Park not found: " + parkId));
+                .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
 
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Total amount cannot be negative");
+        }
+        if (!"DRAFT".equals(status)) {
+            throw new BadRequestException("New budgets must start as DRAFT");
+        }
         if (budgetRepository.findByParkIdAndFiscalYear(parkId, fiscalYear).isPresent()) {
-            throw new IllegalArgumentException("Budget already exists for park " + parkId + " and fiscal year " + fiscalYear);
+            throw new ConflictException("A budget already exists for park " + parkId + " and fiscal year " + fiscalYear);
         }
 
         Budget budget = new Budget();
         budget.setPark(park);
         budget.setFiscalYear(fiscalYear);
         budget.setTotalAmount(totalAmount);
-        budget.setBalance(totalAmount); // Initial balance = total amount
+        budget.setBalance(totalAmount);
         budget.setStatus(status);
         budget.setCreatedBy(createdBy);
         return budgetRepository.save(budget);
@@ -54,16 +64,23 @@ public class BudgetService {
     @Transactional
     public Budget updateBudget(UUID budgetId, BigDecimal totalAmount, String status, String token) {
         Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new IllegalArgumentException("Budget not found: " + budgetId));
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         if (!"DRAFT".equals(budget.getStatus())) {
-            throw new IllegalStateException("Only DRAFT budgets can be updated");
+            throw new BadRequestException("Only DRAFT budgets can be updated");
         }
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Total amount cannot be negative");
+        }
+        if (!"DRAFT".equals(status)) {
+            throw new BadRequestException("Updated budgets must remain in DRAFT status");
+        }
+
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
 
         budget.setTotalAmount(totalAmount);
-        budget.setBalance(totalAmount); // Reset balance (no expenses yet in this scope)
+        budget.setBalance(totalAmount); // Reset balance since no expenses yet
         budget.setStatus(status);
         return budgetRepository.save(budget);
     }
@@ -71,15 +88,16 @@ public class BudgetService {
     @Transactional
     public Budget approveBudget(UUID budgetId, String token) {
         Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new IllegalArgumentException("Budget not found: " + budgetId));
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         if (!"DRAFT".equals(budget.getStatus())) {
-            throw new IllegalStateException("Only DRAFT budgets can be approved");
+            throw new BadRequestException("Only DRAFT budgets can be approved");
         }
+
         String email = jwtUtil.getEmailFromToken(token);
         User approver = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         if (!"GOVERNMENT_OFFICER".equals(approver.getRole())) {
-            throw new IllegalStateException("Only GOVERNMENT_OFFICER can approve budgets");
+            throw new ForbiddenException("Only GOVERNMENT_OFFICER can approve budgets");
         }
 
         budget.setStatus("APPROVED");
@@ -91,15 +109,16 @@ public class BudgetService {
     @Transactional
     public Budget rejectBudget(UUID budgetId, String token) {
         Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new IllegalArgumentException("Budget not found: " + budgetId));
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         if (!"DRAFT".equals(budget.getStatus())) {
-            throw new IllegalStateException("Only DRAFT budgets can be rejected");
+            throw new BadRequestException("Only DRAFT budgets can be rejected");
         }
+
         String email = jwtUtil.getEmailFromToken(token);
         User approver = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         if (!"GOVERNMENT_OFFICER".equals(approver.getRole())) {
-            throw new IllegalStateException("Only GOVERNMENT_OFFICER can reject budgets");
+            throw new ForbiddenException("Only GOVERNMENT_OFFICER can reject budgets");
         }
 
         budget.setStatus("REJECTED");
@@ -109,6 +128,9 @@ public class BudgetService {
     }
 
     public List<Budget> getBudgetsByPark(UUID parkId) {
+        if (!parkRepository.existsById(parkId)) {
+            throw new NotFoundException("Park not found with ID: " + parkId);
+        }
         return budgetRepository.findByParkId(parkId);
     }
 }

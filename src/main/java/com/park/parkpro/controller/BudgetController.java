@@ -3,6 +3,7 @@ package com.park.parkpro.controller;
 import com.park.parkpro.domain.Budget;
 import com.park.parkpro.dto.BudgetResponseDto;
 import com.park.parkpro.dto.CreateBudgetRequestDto;
+import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.BudgetService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,10 @@ public class BudgetController {
             @PathVariable UUID parkId,
             @RequestBody CreateBudgetRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7); // Remove "Bearer "
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
         Budget budget = budgetService.createBudget(parkId, request.getFiscalYear(), request.getTotalAmount(), "DRAFT", token);
         BudgetResponseDto response = mapToDto(budget);
         return ResponseEntity.ok(response);
@@ -36,6 +40,9 @@ public class BudgetController {
             @PathVariable UUID budgetId,
             @RequestBody CreateBudgetRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
         String token = authHeader.substring(7);
         Budget budget = budgetService.updateBudget(budgetId, request.getTotalAmount(), request.getStatus(), token);
         BudgetResponseDto response = mapToDto(budget);
@@ -46,6 +53,9 @@ public class BudgetController {
     public ResponseEntity<BudgetResponseDto> approveBudget(
             @PathVariable UUID budgetId,
             @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
         String token = authHeader.substring(7);
         Budget budget = budgetService.approveBudget(budgetId, token);
         BudgetResponseDto response = mapToDto(budget);
@@ -56,6 +66,9 @@ public class BudgetController {
     public ResponseEntity<BudgetResponseDto> rejectBudget(
             @PathVariable UUID budgetId,
             @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
         String token = authHeader.substring(7);
         Budget budget = budgetService.rejectBudget(budgetId, token);
         BudgetResponseDto response = mapToDto(budget);
