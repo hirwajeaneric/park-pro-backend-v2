@@ -62,6 +62,13 @@ public class UserController {
         return ResponseEntity.ok("Account verified successfully");
     }
 
+    @PostMapping("/new-verification-code")
+    public ResponseEntity<String> newVerificationCode(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        userService.sendNewVerificationCode(email);
+        return ResponseEntity.ok("New verification code sent");
+    }
+
     @PostMapping("/password-reset/request")
     public ResponseEntity<String> requestPasswordReset(@RequestBody Map<String, String> request) {
         String email = request.get("email");

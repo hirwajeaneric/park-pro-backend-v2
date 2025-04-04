@@ -93,11 +93,11 @@ public class UserService {
     }
 
     @Transactional
-    public ResponseEntity<String> sendNewVerificationCode(String email, String code) {
+    public ResponseEntity<String> sendNewVerificationCode(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User with email "+email+" not found"));
         // Find the previous code
-        VerificationToken token = verificationTokenRepository.findByTokenAndUser(code, user)
+        VerificationToken token = verificationTokenRepository.findByUser(user)
                 .orElseThrow(() -> new NotFoundException("Previous verification token not found"));
         // Delete the previous code first
         verificationTokenRepository.delete(token);
