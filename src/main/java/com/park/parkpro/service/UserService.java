@@ -1,7 +1,10 @@
+// src/main/java/com/park/parkpro/service/UserService.java
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
+import com.park.parkpro.domain.VerificationToken;
+import com.park.parkpro.domain.PasswordResetToken;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.exception.BadRequestException;
@@ -9,76 +12,124 @@ import com.park.parkpro.exception.ConflictException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
+import com.park.parkpro.repository.VerificationTokenRepository;
+import com.park.parkpro.repository.PasswordResetTokenRepository;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ParkRepository parkRepository;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final JavaMailSender mailSender;
     private static final Set<String> VALID_ROLES = Set.of("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "VISITOR", "GOVERNMENT_OFFICER", "AUDITOR");
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ParkRepository parkRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ParkRepository parkRepository,
+                       VerificationTokenRepository verificationTokenRepository, PasswordResetTokenRepository passwordResetTokenRepository,
+                       JavaMailSender mailSender) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.parkRepository = parkRepository;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.mailSender = mailSender;
+    }
+
+    public Boolean doesUserAlreadyExist(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 
     @Transactional
     public User createUser(CreateUserRequestDto request) {
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            throw new BadRequestException("Email cannot be empty");
+        validateUserInput(request.getEmail(), request.getPassword(), request.getRole());
+        if (doesUserAlreadyExist(request.getEmail())) {
+            throw new ConflictException("User with email "+request.getEmail()+" already exists");
+        } else {
+            User user = new User();
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+            user.setPassword(passwordEncoder.encode(tempPassword));
+            user.setRole(request.getRole());
+            user.setActive(true); // Admin-created users are active immediately
+            user.setMustResetPassword(true); // Require reset on first login
+            User savedUser = userRepository.save(user);
+            sendTempPasswordEmail(savedUser.getEmail(), tempPassword);
+            return savedUser;
         }
-        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            throw new BadRequestException("Password cannot be empty");
-        }
-        if (request.getPassword().length() < 8) {
-            throw new BadRequestException("Password must be at least 8 characters long");
-        }
-        if (!VALID_ROLES.contains(request.getRole())) {
-            throw new BadRequestException("Invalid role: " + request.getRole());
-        }
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ConflictException("Email '" + request.getEmail() + "' is already taken");
-        }
-
-        User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
-        return userRepository.save(user);
     }
 
     @Transactional
     public User signup(SignupRequestDto request) {
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            throw new BadRequestException("Email cannot be empty");
+        validateUserInput(request.getEmail(), request.getPassword(), "VISITOR");
+        if (doesUserAlreadyExist(request.getEmail())) {
+            throw new ConflictException("User with email "+request.getEmail()+" already exists");
+        } else {
+            User user = new User();
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole("VISITOR");
+            user.setActive(false); // Inactive until verified
+            User savedUser = userRepository.save(user);
+            String verificationCode = String.format("%06d", new Random().nextInt(999999));
+            VerificationToken token = new VerificationToken(verificationCode, savedUser, LocalDateTime.now().plusHours(24));
+            verificationTokenRepository.save(token);
+            sendVerificationEmail(savedUser.getEmail(), verificationCode);
+            return savedUser;
         }
-        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            throw new BadRequestException("Password cannot be empty");
+    }
+
+    @Transactional
+    public void verifyAccount(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User with email '" + email + "' not found"));
+        VerificationToken token = verificationTokenRepository.findByTokenAndUser(code, user)
+                .orElseThrow(() -> new BadRequestException("Invalid verification code"));
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Verification code has expired");
         }
-        if (request.getPassword().length() < 8) {
+        user.setActive(true);
+        userRepository.save(user);
+        verificationTokenRepository.delete(token);
+    }
+
+    @Transactional
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User with email '" + email + "' not found"));
+        String resetToken = UUID.randomUUID().toString();
+        PasswordResetToken token = new PasswordResetToken(resetToken, user, LocalDateTime.now().plusHours(1));
+        passwordResetTokenRepository.save(token);
+        sendPasswordResetEmail(user.getEmail(), resetToken);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        if (newPassword == null || newPassword.trim().isEmpty() || newPassword.length() < 8) {
             throw new BadRequestException("Password must be at least 8 characters long");
         }
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ConflictException("Email '" + request.getEmail() + "' is already taken");
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Invalid reset token"));
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Reset token has expired");
         }
-
-        User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("VISITOR"); // Fixed role for signup
-        return userRepository.save(user);
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setMustResetPassword(false); // Clear reset flag
+        userRepository.save(user);
+        passwordResetTokenRepository.delete(resetToken);
     }
 
     @Transactional
@@ -93,7 +144,6 @@ public class UserService {
         if (user.getPark() != null) {
             throw new ConflictException("User " + userId + " is already assigned to park " + user.getPark().getId());
         }
-
         user.setPark(park);
         userRepository.save(user);
     }
@@ -127,5 +177,47 @@ public class UserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User with email '" + email + "' not found"));
+    }
+
+    private void validateUserInput(String email, String password, String role) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new BadRequestException("Email cannot be empty");
+        }
+        if (password == null || password.trim().isEmpty()) {
+            throw new BadRequestException("Password cannot be empty");
+        }
+        if (password.length() < 8) {
+            throw new BadRequestException("Password must be at least 8 characters long");
+        }
+        if (!VALID_ROLES.contains(role)) {
+            throw new BadRequestException("Invalid role: " + role);
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ConflictException("Email '" + email + "' is already taken");
+        }
+    }
+
+    private void sendVerificationEmail(String email, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Verify Your Account");
+        message.setText("Your verification code is: " + code);
+        mailSender.send(message);
+    }
+
+    private void sendTempPasswordEmail(String email, String tempPassword) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Your Account Credentials");
+        message.setText("Your temporary password is: " + tempPassword + "\nPlease reset it on your first login.");
+        mailSender.send(message);
+    }
+
+    private void sendPasswordResetEmail(String email, String resetToken) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Reset Your Password");
+        message.setText("Click this link to reset your password: http://localhost:3000/auth/reset-password/?token=" + resetToken);
+        mailSender.send(message);
     }
 }

@@ -1,3 +1,4 @@
+// src/main/java/com/park/parkpro/domain/User.java
 package com.park.parkpro.domain;
 
 import jakarta.persistence.*;
@@ -35,7 +36,10 @@ public class User {
     private String role;
 
     @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;
+    private boolean isActive = false;
+
+    @Column(name = "must_reset_password", nullable = false)
+    private boolean mustResetPassword = false;
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;

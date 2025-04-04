@@ -2,46 +2,87 @@ package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.CreateUserRequestDto;
+import com.park.parkpro.dto.LoginRequestDto;
+import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.dto.UserResponseDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.security.JwtUtil;
 import com.park.parkpro.service.UserService;
+import com.park.parkpro.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
     private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService, JwtUtil jwtUtil) {
+    public UserController(UserService userService, AuthService authService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.authService = authService;
         this.jwtUtil = jwtUtil;
     }
 
-    @PostMapping
+    @PostMapping("/users")
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody CreateUserRequestDto request) {
         User user = userService.createUser(request);
-        UserResponseDto response = new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), null);
+        UserResponseDto response = mapToUserResponseDto(user);
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
     }
 
-    @PostMapping("/{userId}/parks/{parkId}")
+    @PostMapping("/signup")
+    public ResponseEntity<UserResponseDto> signup(@Valid @RequestBody SignupRequestDto request) {
+        User user = userService.signup(request);
+        UserResponseDto response = mapToUserResponseDto(user);
+        return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@Valid @RequestBody LoginRequestDto loginRequest) {
+        String token = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
+        return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/verify-account")
+    public ResponseEntity<String> verifyAccount(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+        userService.verifyAccount(email, code);
+        return ResponseEntity.ok("Account verified successfully");
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<String> requestPasswordReset(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        userService.requestPasswordReset(email);
+        return ResponseEntity.ok("Password reset link sent to your email");
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<String> confirmPasswordReset(@RequestParam String token, @RequestBody Map<String, String> request) {
+        String newPassword = request.get("newPassword");
+        userService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Password reset successfully");
+    }
+
+    @PostMapping("/users/{userId}/parks/{parkId}")
     public ResponseEntity<Void> assignParkToUser(@PathVariable UUID userId, @PathVariable UUID parkId) {
         userService.assignParkToUser(userId, parkId);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping
+    @GetMapping("/users")
     public ResponseEntity<List<UserResponseDto>> getUsers(
             @RequestParam(required = false) String role,
             @RequestParam(required = false) UUID parkId) {
@@ -49,22 +90,16 @@ public class UserController {
         if (role != null && parkId != null) {
             throw new BadRequestException("Cannot filter by both role and parkId simultaneously");
         } else if (role != null) {
-            users = userService.getUsersByRole(role).stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
-                    .collect(Collectors.toList());
+            users = userService.getUsersByRole(role).stream().map(this::mapToUserResponseDto).collect(Collectors.toList());
         } else if (parkId != null) {
-            users = userService.getUsersByParkId(parkId).stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
-                    .collect(Collectors.toList());
+            users = userService.getUsersByParkId(parkId).stream().map(this::mapToUserResponseDto).collect(Collectors.toList());
         } else {
-            users = userService.getAllUsers().stream()
-                    .map(user -> new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getPark() != null ? user.getPark().getId() : null))
-                    .collect(Collectors.toList());
+            users = userService.getAllUsers().stream().map(this::mapToUserResponseDto).collect(Collectors.toList());
         }
         return ResponseEntity.ok(users);
     }
 
-    @GetMapping("/me")
+    @GetMapping("/users/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
@@ -75,10 +110,11 @@ public class UserController {
         }
         String email = jwtUtil.getEmailFromToken(token);
         User user = userService.getUserByEmail(email);
+        return ResponseEntity.ok(mapToUserResponseDto(user));
+    }
+
+    private UserResponseDto mapToUserResponseDto(User user) {
         UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
-        UserResponseDto response = new UserResponseDto(
-                user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId
-        );
-        return ResponseEntity.ok(response);
+        return new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId);
     }
 }
