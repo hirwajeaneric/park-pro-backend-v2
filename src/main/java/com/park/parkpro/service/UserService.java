@@ -14,6 +14,7 @@ import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
 import com.park.parkpro.repository.VerificationTokenRepository;
 import com.park.parkpro.repository.PasswordResetTokenRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -89,6 +90,24 @@ public class UserService {
             sendVerificationEmail(savedUser.getEmail(), verificationCode);
             return savedUser;
         }
+    }
+
+    @Transactional
+    public ResponseEntity<String> sendNewVerificationCode(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User with email "+email+" not found"));
+        // Find the previous code
+        VerificationToken token = verificationTokenRepository.findByTokenAndUser(code, user)
+                .orElseThrow(() -> new NotFoundException("Previous verification token not found"));
+        // Delete the previous code first
+        verificationTokenRepository.delete(token);
+        // Create new code
+        String newVerificationCode = String.format("%06d", new Random().nextInt(999999));
+        VerificationToken newToken = new VerificationToken(newVerificationCode, user, LocalDateTime.now().plusHours(24));
+        verificationTokenRepository.save(newToken);
+        // Send the new code via email
+        sendVerificationEmail(email, newVerificationCode);
+        return ResponseEntity.ok("A new verification code was sent to your email.");
     }
 
     @Transactional
