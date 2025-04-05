@@ -61,6 +61,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/funding-requests/{fundingRequestId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/funding-requests/{fundingRequestId}/reject").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/parks/{parkId}/funding-requests").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers(HttpMethod.POST, "/api/parks/{parkId}/activities").hasAnyRole("ADMIN", "PARK_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/activities/{activityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/activities/{activityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
+                        .requestMatchers("/api/parks/{parkId}/activities", "/api/activities/{activityId}").permitAll() // Publicly viewable
                         .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .anyRequest().authenticated()
                 )
