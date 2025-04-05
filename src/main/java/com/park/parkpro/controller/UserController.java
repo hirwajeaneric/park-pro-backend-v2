@@ -1,10 +1,7 @@
 package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.User;
-import com.park.parkpro.dto.CreateUserRequestDto;
-import com.park.parkpro.dto.LoginRequestDto;
-import com.park.parkpro.dto.SignupRequestDto;
-import com.park.parkpro.dto.UserResponseDto;
+import com.park.parkpro.dto.*;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.security.JwtUtil;
@@ -120,8 +117,25 @@ public class UserController {
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 
+    @PatchMapping("/{userId}")
+    public ResponseEntity<UserResponseDto> updateUserProfile(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UpdateUserProfileRequestDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        User updatedUser = userService.updateUserProfile(userId, request, token);
+        return ResponseEntity.ok(mapToUserResponseDto(updatedUser));
+    }
+
     private UserResponseDto mapToUserResponseDto(User user) {
-        UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
-        return new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId, user.getPhone(), user.getGender(), user.getPassportNationalId(), user.getNationality(), user.getAge());
+        return new UserResponseDto(
+                user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getPhone(),
+                user.getGender(), user.getPassportNationalId(), user.getNationality(), user.getAge(),
+                user.getRole(), user.getPark() != null ? user.getPark().getId() : null,
+                user.isActive(), user.getLastLogin(), user.getCreatedAt(), user.getUpdatedAt()
+        );
     }
 }

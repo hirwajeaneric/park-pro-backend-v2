@@ -39,7 +39,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/health", "/api/login", "/api/signup", "/api/verify-account", "/api/password-reset/**", "/api/new-verification-code").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers("/api/users", "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users/{userId}").authenticated() // View profile
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}").authenticated() // Update profile
+                        .requestMatchers("/api/users/**").hasRole("ADMIN") // Other user endpoints restricted to ADMIN
+                        .requestMatchers("/api/users", "/api/users/**").hasAnyRole("ADMIN", "FINANCE_MANAGER")
                         .requestMatchers("/api/debug/auth").authenticated()
                         .requestMatchers("/api/parks/{parkId}/budgets").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")

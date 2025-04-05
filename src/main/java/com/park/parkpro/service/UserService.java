@@ -7,13 +7,16 @@ import com.park.parkpro.domain.VerificationToken;
 import com.park.parkpro.domain.PasswordResetToken;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.SignupRequestDto;
+import com.park.parkpro.dto.UpdateUserProfileRequestDto;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.exception.ConflictException;
+import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
 import com.park.parkpro.repository.VerificationTokenRepository;
 import com.park.parkpro.repository.PasswordResetTokenRepository;
+import com.park.parkpro.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -33,16 +36,18 @@ public class UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JavaMailSender mailSender;
     private static final Set<String> VALID_ROLES = Set.of("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "VISITOR", "GOVERNMENT_OFFICER", "AUDITOR");
+    private final JwtUtil jwtUtil;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ParkRepository parkRepository,
                        VerificationTokenRepository verificationTokenRepository, PasswordResetTokenRepository passwordResetTokenRepository,
-                       JavaMailSender mailSender) {
+                       JavaMailSender mailSender, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.parkRepository = parkRepository;
         this.verificationTokenRepository = verificationTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.mailSender = mailSender;
+        this.jwtUtil = jwtUtil;
     }
 
     public Boolean doesUserAlreadyExist(String email) {
@@ -132,6 +137,41 @@ public class UserService {
         PasswordResetToken token = new PasswordResetToken(resetToken, user, LocalDateTime.now().plusHours(1));
         passwordResetTokenRepository.save(token);
         sendPasswordResetEmail(user.getEmail(), resetToken);
+    }
+
+    @Transactional
+    public User updateUserProfile(UUID userId, UpdateUserProfileRequestDto request, String token) {
+        String emailFromToken = jwtUtil.getEmailFromToken(token);
+        User requestingUser = userRepository.findByEmail(emailFromToken)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + emailFromToken));
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+
+        // Authorization check: User can only update their own profile unless ADMIN
+        if (!requestingUser.getId().equals(targetUser.getId()) && !"ADMIN".equals(requestingUser.getRole())) {
+            throw new ForbiddenException("You can only update your own profile");
+        }
+
+        // Check if email is being changed and ensure uniqueness
+        if (request.getEmail() != null && !request.getEmail().equals(targetUser.getEmail())) {
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new BadRequestException("Email " + request.getEmail() + " is already in use");
+            }
+            targetUser.setEmail(request.getEmail());
+        }
+
+        // Update fields if provided
+        targetUser.setFirstName(request.getFirstName());
+        targetUser.setLastName(request.getLastName());
+        if (request.getPhone() != null) targetUser.setPhone(request.getPhone());
+        if (request.getGender() != null) targetUser.setGender(request.getGender());
+        if (request.getPassportNationalId() != null) targetUser.setPassportNationalId(request.getPassportNationalId());
+        if (request.getNationality() != null) targetUser.setNationality(request.getNationality());
+        if (request.getAge() != null) targetUser.setAge(request.getAge());
+
+        targetUser.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(targetUser);
     }
 
     @Transactional
