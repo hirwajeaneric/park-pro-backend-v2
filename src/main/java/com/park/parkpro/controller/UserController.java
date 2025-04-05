@@ -117,7 +117,7 @@ public class UserController {
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 
-    @PatchMapping("/{userId}")
+    @PatchMapping("/users/{userId}")
     public ResponseEntity<UserResponseDto> updateUserProfile(
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateUserProfileRequestDto request,
