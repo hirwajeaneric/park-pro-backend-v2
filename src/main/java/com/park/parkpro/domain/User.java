@@ -32,6 +32,21 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @Column(name = "phone", length = 15)
+    private String phone;
+
+    @Column(name = "gender", length = 30)
+    private String gender;
+
+    @Column(name = "passport_national_id", length = 30)
+    private String passportNationalId;
+
+    @Column(name = "nationality", length = 30)
+    private String nationality;
+
+    @Column(name = "age")
+    private int age;
+
     @Column(nullable = false, length = 30)
     private String role;
 

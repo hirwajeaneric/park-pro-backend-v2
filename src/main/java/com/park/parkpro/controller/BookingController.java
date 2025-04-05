@@ -5,6 +5,7 @@ import com.park.parkpro.dto.BookingResponseDto;
 import com.park.parkpro.dto.CreateBookingRequestDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.BookingService;
+import com.stripe.exception.StripeException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,12 +27,14 @@ public class BookingController {
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody CreateBookingRequestDto request,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestParam String paymentMethodId, // Stripe payment method ID (e.g., pm_xxx)
+            @RequestHeader("Authorization") String authHeader) throws StripeException {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Booking booking = bookingService.createBooking(request.getActivityId(), request.getVisitDate(), token);
+        Booking booking = bookingService.createBooking(request.getActivityId(), request.getVisitDate(),
+                paymentMethodId, token);
         return ResponseEntity.created(URI.create("/api/bookings/" + booking.getId()))
                 .body(mapToBookingDto(booking));
     }
@@ -39,13 +42,12 @@ public class BookingController {
     @PostMapping("/bookings/{bookingId}/confirm")
     public ResponseEntity<BookingResponseDto> confirmBooking(
             @PathVariable UUID bookingId,
-            @RequestParam String paymentReference,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) throws StripeException {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Booking booking = bookingService.confirmBooking(bookingId, paymentReference, token);
+        Booking booking = bookingService.confirmBooking(bookingId, token);
         return ResponseEntity.ok(mapToBookingDto(booking));
     }
 

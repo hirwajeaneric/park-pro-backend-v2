@@ -9,6 +9,8 @@ public class UpdateActivityRequestDto {
     @PositiveOrZero
     private BigDecimal price;
     private String description;
+    @PositiveOrZero
+    private Integer capacityPerDay; // New field
 
     // Getters and Setters
     public String getName() { return name; }
@@ -17,4 +19,6 @@ public class UpdateActivityRequestDto {
     public void setPrice(BigDecimal price) { this.price = price; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public Integer getCapacityPerDay() { return capacityPerDay; }
+    public void setCapacityPerDay(Integer capacityPerDay) { this.capacityPerDay = capacityPerDay; }
 }

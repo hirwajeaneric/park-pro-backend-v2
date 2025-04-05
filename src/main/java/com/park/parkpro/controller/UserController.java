@@ -122,6 +122,6 @@ public class UserController {
 
     private UserResponseDto mapToUserResponseDto(User user) {
         UUID parkId = (user.getPark() != null) ? user.getPark().getId() : null;
-        return new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId);
+        return new UserResponseDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), parkId, user.getPhone(), user.getGender(), user.getPassportNationalId(), user.getNationality(), user.getAge());
     }
 }

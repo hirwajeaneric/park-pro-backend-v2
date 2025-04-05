@@ -32,6 +32,9 @@ public class Activity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "capacity_per_day")
+    private Integer capacityPerDay; // New field
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
