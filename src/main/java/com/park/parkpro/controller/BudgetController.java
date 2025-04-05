@@ -1,18 +1,17 @@
 package com.park.parkpro.controller;
 
-import com.park.parkpro.domain.Budget;
-import com.park.parkpro.domain.BudgetCategory;
-import com.park.parkpro.domain.Expense;
-import com.park.parkpro.domain.WithdrawRequest;
+import com.park.parkpro.domain.*;
 import com.park.parkpro.dto.*;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.BudgetService;
 import com.park.parkpro.service.ExpenseService;
+import com.park.parkpro.service.FundingRequestService;
 import com.park.parkpro.service.WithdrawRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,11 +22,13 @@ public class BudgetController {
     private final BudgetService budgetService;
     private final ExpenseService expenseService;
     private final WithdrawRequestService withdrawRequestService;
+    private final FundingRequestService fundingRequestService; // New dependency
 
-    public BudgetController(BudgetService budgetService, ExpenseService expenseService, WithdrawRequestService withdrawRequestService) {
+    public BudgetController(BudgetService budgetService, ExpenseService expenseService, WithdrawRequestService withdrawRequestService, FundingRequestService fundingRequestService) {
         this.budgetService = budgetService;
         this.expenseService = expenseService;
         this.withdrawRequestService = withdrawRequestService;
+        this.fundingRequestService = fundingRequestService;
     }
 
     @PostMapping("/parks/{parkId}/budgets")
@@ -204,6 +205,64 @@ public class BudgetController {
             @PathVariable UUID categoryId) {
         List<WithdrawRequest> requests = withdrawRequestService.getWithdrawRequestsByBudgetCategory(categoryId);
         return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
+    }
+
+    @PostMapping("/parks/{parkId}/funding-requests")
+    public ResponseEntity<FundingRequestResponseDto> createFundingRequest(
+            @PathVariable UUID parkId,
+            @Valid @RequestBody CreateFundingRequestDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        FundingRequest fundingRequest = fundingRequestService.createFundingRequest(
+                parkId, request.getRequestedAmount(), request.getRequestType(), request.getReason(),
+                request.getBudgetId(), token);
+        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+    }
+
+    @PostMapping("/funding-requests/{fundingRequestId}/approve")
+    public ResponseEntity<FundingRequestResponseDto> approveFundingRequest(
+            @PathVariable UUID fundingRequestId,
+            @RequestParam BigDecimal approvedAmount,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        FundingRequest fundingRequest = fundingRequestService.approveFundingRequest(fundingRequestId, approvedAmount, token);
+        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+    }
+
+    @PostMapping("/funding-requests/{fundingRequestId}/reject")
+    public ResponseEntity<FundingRequestResponseDto> rejectFundingRequest(
+            @PathVariable UUID fundingRequestId,
+            @RequestParam(required = false) String rejectionReason,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        FundingRequest fundingRequest = fundingRequestService.rejectFundingRequest(fundingRequestId, rejectionReason, token);
+        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+    }
+
+    @GetMapping("/parks/{parkId}/funding-requests")
+    public ResponseEntity<List<FundingRequestResponseDto>> getFundingRequestsByPark(@PathVariable UUID parkId) {
+        List<FundingRequest> requests = fundingRequestService.getFundingRequestsByPark(parkId);
+        return ResponseEntity.ok(requests.stream().map(this::mapToFundingRequestDto).collect(Collectors.toList()));
+    }
+
+    private FundingRequestResponseDto mapToFundingRequestDto(FundingRequest request) {
+        return new FundingRequestResponseDto(
+                request.getId(), request.getPark().getId(), request.getBudget().getId(),
+                request.getRequestedAmount(), request.getApprovedAmount(), request.getRequestType(),
+                request.getReason(), request.getRequester().getId(),
+                request.getApprover() != null ? request.getApprover().getId() : null,
+                request.getStatus(), request.getRejectionReason(), request.getApprovedAt(),
+                request.getCurrency(), request.getCreatedAt(), request.getUpdatedAt()
+        );
     }
 
     // Mapping Methods
