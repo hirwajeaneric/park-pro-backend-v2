@@ -32,6 +32,9 @@ public class Activity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "picture")
+    private String picture;
+
     @Column(name = "capacity_per_day")
     private Integer capacityPerDay; // New field
 

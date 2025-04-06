@@ -16,6 +16,8 @@ public class CreateActivityRequestDto {
 
     private String description;
 
+    private String picture;
+
     @PositiveOrZero
     private Integer capacityPerDay; // New field
 
@@ -25,6 +27,7 @@ public class CreateActivityRequestDto {
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public String getDescription() { return description; }
+    public String getPicture() { return picture; }
     public void setDescription(String description) { this.description = description; }
     public Integer getCapacityPerDay() { return capacityPerDay; }
     public void setCapacityPerDay(Integer capacityPerDay) { this.capacityPerDay = capacityPerDay; }

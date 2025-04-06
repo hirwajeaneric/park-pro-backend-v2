@@ -34,7 +34,7 @@ public class ActivityController {
         }
         String token = authHeader.substring(7);
         Activity activity = activityService.createActivity(parkId, request.getName(), request.getPrice(),
-                request.getDescription(), request.getCapacityPerDay(), token);
+                request.getDescription(), request.getPicture(), request.getCapacityPerDay(), token);
         return ResponseEntity.created(URI.create("/api/activities/" + activity.getId()))
                 .body(mapToActivityDto(activity));
     }
@@ -49,7 +49,7 @@ public class ActivityController {
         }
         String token = authHeader.substring(7);
         Activity activity = activityService.updateActivity(activityId, request.getName(), request.getPrice(),
-                request.getDescription(), request.getCapacityPerDay(), token);
+                request.getDescription(), request.getPicture(), request.getCapacityPerDay(), token);
         return ResponseEntity.ok(mapToActivityDto(activity));
     }
 
@@ -79,7 +79,7 @@ public class ActivityController {
 
     private ActivityResponseDto mapToActivityDto(Activity activity) {
         return new ActivityResponseDto(activity.getId(), activity.getName(), activity.getPark().getId(),
-                activity.getPrice(), activity.getDescription(), activity.getCapacityPerDay(),
+                activity.getPrice(), activity.getDescription(), activity.getPicture(), activity.getCapacityPerDay(),
                 activity.getCreatedAt(), activity.getUpdatedAt());
     }
 }
