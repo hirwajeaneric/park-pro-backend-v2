@@ -30,7 +30,8 @@ public class OpportunityApplicationService {
     }
 
     @Transactional
-    public OpportunityApplication createApplication(UUID opportunityId, String firstName, String lastName, String email, String applicationLetterUrl, String token) {
+    public OpportunityApplication createApplication(UUID opportunityId, String firstName, String lastName,
+                                                    String email, String applicationLetterUrl, String token) {
         String userEmail = jwtUtil.getEmailFromToken(token);
         Opportunity opportunity = opportunityRepository.findById(opportunityId)
                 .orElseThrow(() -> new NotFoundException("Opportunity not found with ID: " + opportunityId));
@@ -42,7 +43,7 @@ public class OpportunityApplicationService {
         application.setOpportunity(opportunity);
         application.setFirstName(firstName);
         application.setLastName(lastName);
-        application.setEmail(email); // Could match authenticated user's email if desired
+        application.setEmail(email); // Could enforce userEmail if desired
         application.setApplicationLetterUrl(applicationLetterUrl);
         application.setStatus("SUBMITTED");
         return applicationRepository.save(application);
@@ -86,5 +87,10 @@ public class OpportunityApplicationService {
     public OpportunityApplication getApplicationById(UUID applicationId) {
         return applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found with ID: " + applicationId));
+    }
+
+    public List<OpportunityApplication> getMyApplications(String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        return applicationRepository.findByEmail(email);
     }
 }

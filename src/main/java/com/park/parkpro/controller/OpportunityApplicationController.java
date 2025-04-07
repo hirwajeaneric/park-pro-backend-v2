@@ -1,4 +1,3 @@
-// src/main/java/com/park/parkpro/controller/OpportunityApplicationController.java
 package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.OpportunityApplication;
@@ -68,6 +67,17 @@ public class OpportunityApplicationController {
     public ResponseEntity<OpportunityApplicationResponseDto> getApplicationById(@PathVariable UUID applicationId) {
         OpportunityApplication application = applicationService.getApplicationById(applicationId);
         return ResponseEntity.ok(mapToApplicationDto(application));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<OpportunityApplicationResponseDto>> getMyApplications(
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<OpportunityApplication> applications = applicationService.getMyApplications(token);
+        return ResponseEntity.ok(applications.stream().map(this::mapToApplicationDto).collect(Collectors.toList()));
     }
 
     private OpportunityApplicationResponseDto mapToApplicationDto(OpportunityApplication application) {

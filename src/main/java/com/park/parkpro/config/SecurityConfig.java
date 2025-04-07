@@ -88,7 +88,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/opportunity-applications").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunity-applications/{applicationId}/status").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/opportunity-applications/opportunity/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
-                        .requestMatchers("/api/opportunity-applications/{applicationId}").authenticated()
+                        .requestMatchers("/api/opportunity-applications/{applicationId}", "/api/opportunity-applications/my").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
