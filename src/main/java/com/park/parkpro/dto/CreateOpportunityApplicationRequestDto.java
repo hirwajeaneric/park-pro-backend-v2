@@ -1,29 +1,29 @@
 package com.park.parkpro.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
 public class CreateOpportunityApplicationRequestDto {
-    @NotBlank
+    @NotNull
     private UUID opportunityId;
 
-    @NotBlank
+    @NotNull
     @Size(max = 50)
     private String firstName;
 
-    @NotBlank
+    @NotNull
     @Size(max = 50)
     private String lastName;
 
-    @NotBlank
+    @NotNull
     @Email
     @Size(max = 100)
     private String email;
 
-    @NotBlank
+    @NotNull
     @Size(max = 255)
     private String applicationLetterUrl;
 

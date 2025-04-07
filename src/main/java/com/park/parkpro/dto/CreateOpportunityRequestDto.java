@@ -1,31 +1,29 @@
-// src/main/java/com/park/parkpro/dto/CreateOpportunityRequestDto.java
 package com.park.parkpro.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
 public class CreateOpportunityRequestDto {
-    @NotBlank
+    @NotNull
     @Size(max = 100)
     private String title;
 
-    @NotBlank
+    @NotNull
     private String description;
 
     private String details;
 
-    @NotBlank
+    @NotNull
     @Size(max = 50)
     private String type; // JOB, VOLUNTEER, PARTNERSHIP
 
-    @NotBlank
+    @NotNull
     @Size(max = 20)
     private String status; // OPEN, CLOSED
 
-    @NotBlank
+    @NotNull
     @Size(max = 20)
     private String visibility; // PUBLIC, PRIVATE
 
