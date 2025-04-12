@@ -1,10 +1,10 @@
-// src/main/java/com/park/parkpro/service/UserService.java
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.domain.VerificationToken;
 import com.park.parkpro.domain.PasswordResetToken;
+import com.park.parkpro.dto.AdminUpdateUserRequestDto;
 import com.park.parkpro.dto.CreateUserRequestDto;
 import com.park.parkpro.dto.SignupRequestDto;
 import com.park.parkpro.dto.UpdateUserProfileRequestDto;
@@ -175,6 +175,66 @@ public class UserService {
     }
 
     @Transactional
+    public User adminUpdateUser(UUID userId, AdminUpdateUserRequestDto request, String token) {
+        String emailFromToken = jwtUtil.getEmailFromToken(token);
+        User requestingUser = userRepository.findByEmail(emailFromToken)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + emailFromToken));
+
+        // Authorization check: Only ADMIN can update any user's account
+        if (!"ADMIN".equals(requestingUser.getRole())) {
+            throw new ForbiddenException("Only ADMIN can update user accounts");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+
+        // Update email with uniqueness check
+        if (request.getEmail() != null && !request.getEmail().equals(targetUser.getEmail())) {
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new ConflictException("Email " + request.getEmail() + " is already in use");
+            }
+            targetUser.setEmail(request.getEmail());
+        }
+
+        // Update basic fields if provided
+        if (request.getFirstName() != null) targetUser.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) targetUser.setLastName(request.getLastName());
+        if (request.getPhone() != null) targetUser.setPhone(request.getPhone());
+        if (request.getGender() != null) targetUser.setGender(request.getGender());
+        if (request.getPassportNationalId() != null) targetUser.setPassportNationalId(request.getPassportNationalId());
+        if (request.getNationality() != null) targetUser.setNationality(request.getNationality());
+        if (request.getAge() != null) targetUser.setAge(request.getAge());
+        if (request.getIsActive() != null) targetUser.setActive(request.getIsActive());
+
+        // Update role with validation
+        if (request.getRole() != null) {
+            if (!VALID_ROLES.contains(request.getRole())) {
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
+            targetUser.setRole(request.getRole());
+        }
+
+        // Update status fields
+        if (request.getIsActive() != null) targetUser.setActive(request.getIsActive());
+        if (request.getMustResetPassword() != null) targetUser.setMustResetPassword(request.getMustResetPassword());
+
+        // Update park assignment
+        if (request.getParkId() != null) {
+            Park park = parkRepository.findById(request.getParkId())
+                    .orElseThrow(() -> new NotFoundException("Park with ID: " + request.getParkId() + " not found"));
+            if (!Arrays.asList("PARK_MANAGER", "FINANCE_OFFICER").contains(targetUser.getRole())) {
+                throw new BadRequestException("Only PARK_MANAGER or FINANCE_OFFICER can be assigned to a park");
+            }
+            targetUser.setPark(park);
+        } else if (request.getParkId() == null && targetUser.getPark() != null) {
+            targetUser.setPark(null); // Allow clearing park assignment
+        }
+
+        targetUser.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(targetUser);
+    }
+
+    @Transactional
     public void resetPassword(String token, String newPassword) {
         if (newPassword == null || newPassword.trim().isEmpty() || newPassword.length() < 8) {
             throw new BadRequestException("Password must be at least 8 characters long");
@@ -197,8 +257,8 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("User with ID '" + userId + "' not found"));
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new NotFoundException("Park with ID '" + parkId + "' not found"));
-        if (!"PARK_MANAGER".equals(user.getRole())) {
-            throw new BadRequestException("Only PARK_MANAGER users can be assigned to a park");
+        if (!"PARK_MANAGER".equals(user.getRole()) && !"FINANCE_OFFICER".equals(user.getRole())) {
+            throw new BadRequestException("Only Park manager and Finance officer users can be assigned to a park");
         }
         if (user.getPark() != null) {
             throw new ConflictException("User " + userId + " is already assigned to park " + user.getPark().getId());
@@ -209,6 +269,11 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public User getUserById(UUID id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User with ID '" + id + "' not found"));
     }
 
     public List<User> getUsersByRole(String role) {
@@ -236,6 +301,33 @@ public class UserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User with email '" + email + "' not found"));
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId, String token) {
+        String emailFromToken = jwtUtil.getEmailFromToken(token);
+        User requestingUser = userRepository.findByEmail(emailFromToken)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + emailFromToken));
+
+        // Authorization check: Only ADMIN can delete users
+        if (!"ADMIN".equals(requestingUser.getRole())) {
+            throw new ForbiddenException("Only ADMIN can delete user accounts");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+
+        // Prevent admin from deleting their own account
+        if (requestingUser.getId().equals(targetUser.getId())) {
+            throw new BadRequestException("Admins cannot delete their own accounts");
+        }
+
+        // Delete associated tokens
+        verificationTokenRepository.findByUser(targetUser).ifPresent(verificationTokenRepository::delete);
+        passwordResetTokenRepository.findByUser(targetUser).ifPresent(passwordResetTokenRepository::delete);
+
+        // Delete the user
+        userRepository.delete(targetUser);
     }
 
     private void validateUserInput(String email, String password, String role) {

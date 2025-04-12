@@ -40,6 +40,8 @@ public class SecurityConfig {
                         .requestMatchers("/health", "/api/login", "/api/signup", "/api/verify-account", "/api/password-reset/**", "/api/new-verification-code").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/{userId}").authenticated() // View profile
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/admin").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}").authenticated() // Update profile
                         .requestMatchers("/api/users/**").hasRole("ADMIN") // Other user endpoints restricted to ADMIN
                         .requestMatchers("/api/users", "/api/users/**").hasAnyRole("ADMIN", "FINANCE_MANAGER")

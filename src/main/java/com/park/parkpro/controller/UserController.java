@@ -103,6 +103,12 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<UserResponseDto> getUserById(@PathVariable UUID userId) {
+        User user = userService.getUserById(userId);
+        return ResponseEntity.ok(mapToUserResponseDto(user));
+    }
+
     @GetMapping("/users/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -127,6 +133,31 @@ public class UserController {
         }
         String token = authHeader.substring(7);
         User updatedUser = userService.updateUserProfile(userId, request, token);
+        return ResponseEntity.ok(mapToUserResponseDto(updatedUser));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable UUID userId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        userService.deleteUser(userId, token);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/users/{userId}/admin")
+    public ResponseEntity<UserResponseDto> adminUpdateUser(
+            @PathVariable UUID userId,
+            @Valid @RequestBody AdminUpdateUserRequestDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        User updatedUser = userService.adminUpdateUser(userId, request, token);
         return ResponseEntity.ok(mapToUserResponseDto(updatedUser));
     }
 
