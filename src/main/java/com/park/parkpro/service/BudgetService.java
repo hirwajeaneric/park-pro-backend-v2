@@ -29,6 +29,11 @@ public class BudgetService {
         this.jwtUtil = jwtUtil;
     }
 
+    public Budget getBudgetById(UUID budgetId) {
+        return budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new NotFoundException("Budget not found with id: "));
+    }
+
     @Transactional
     public Budget createBudget(UUID parkId, Integer fiscalYear, BigDecimal totalAmount, String status, String token) {
         String email = jwtUtil.getEmailFromToken(token);

@@ -82,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/donations/{donationId}/cancel").hasAnyRole("VISITOR", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers("/api/parks/{parkId}/donations").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER", "AUDITOR")
                         .requestMatchers("/api/donations/{donationId}").authenticated()
-                        .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/opportunities").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunities/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/opportunities/my").hasAnyRole("ADMIN", "PARK_MANAGER")

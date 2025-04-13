@@ -85,6 +85,19 @@ public class BudgetController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/budgets/{budgetId}")
+    public ResponseEntity<BudgetResponseDto> getBudget(
+            @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        Budget budget = budgetService.getBudgetById(budgetId);
+        BudgetResponseDto response = mapToDto(budget);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/parks/{parkId}/budgets")
     public ResponseEntity<List<BudgetResponseDto>> getBudgetsByPark(@PathVariable UUID parkId) {
         List<Budget> budgets = budgetService.getBudgetsByPark(parkId);

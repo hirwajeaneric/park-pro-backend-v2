@@ -136,7 +136,17 @@ public class UserService {
         String resetToken = UUID.randomUUID().toString();
         PasswordResetToken token = new PasswordResetToken(resetToken, user, LocalDateTime.now().plusHours(1));
         passwordResetTokenRepository.save(token);
-        sendPasswordResetEmail(user.getEmail(), resetToken);
+        String userRole = user.getRole();
+        System.out.println("User role: "+userRole);
+        String userRolePath = switch (userRole) {
+            case "ADMIN" -> "/admin";
+            case "FINANCE_OFFICER" -> "/finance";
+            case "PARK_MANAGER" -> "/manager";
+            case "GOVERNMENT_OFFICER" -> "/government";
+            case "AUDITOR" -> "/auditor";
+            default -> "";
+        };
+        sendPasswordResetEmail(user.getEmail(), resetToken, userRolePath);
     }
 
     @Transactional
@@ -364,11 +374,13 @@ public class UserService {
         mailSender.send(message);
     }
 
-    private void sendPasswordResetEmail(String email, String resetToken) {
+    private void sendPasswordResetEmail(String email, String resetToken, String rolePath) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setSubject("Reset Your Password");
-        message.setText("Click this link to reset your password: http://localhost:3000/auth/reset-password/?token=" + resetToken);
+        message.setText("Click this link to reset your password: http://localhost:3000/auth"+rolePath+"/reset-password/?token=" + resetToken);
+        System.out.println("EMAIL:");
+        System.out.println("Click this link to reset your password: http://localhost:3000/auth"+rolePath+"/reset-password/?token=" + resetToken);
         mailSender.send(message);
     }
 }

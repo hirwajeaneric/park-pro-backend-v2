@@ -45,9 +45,9 @@ public class BudgetCategoryService {
 
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
-        if (!"APPROVED".equals(budget.getStatus())) {
-            throw new BadRequestException("Categories can only be added to APPROVED budgets");
-        }
+//        if (!"APPROVED".equals(budget.getStatus())) {
+//            throw new BadRequestException("Categories can only be added to APPROVED budgets");
+//        }
         if (budget.getBalance().compareTo(allocatedAmount) < 0) {
             throw new BadRequestException("Allocated amount exceeds remaining budget balance");
         }
@@ -82,9 +82,9 @@ public class BudgetCategoryService {
         BudgetCategory category = budgetCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
         Budget budget = category.getBudget();
-        if (!"DRAFT".equals(budget.getStatus())) {
-            throw new BadRequestException("Only categories in DRAFT budgets can be updated");
-        }
+//        if (!"DRAFT".equals(budget.getStatus())) {
+//            throw new BadRequestException("Only categories in DRAFT budgets can be updated");
+//        }
 
         BigDecimal oldAllocatedAmount = category.getAllocatedAmount();
         if (allocatedAmount.compareTo(oldAllocatedAmount) != 0) {
