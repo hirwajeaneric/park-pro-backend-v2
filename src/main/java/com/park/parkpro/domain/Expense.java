@@ -12,14 +12,15 @@ public class Expense {
     @GeneratedValue
     private UUID id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "budget_id", nullable = false)
+    private Budget budget;
+
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
     @Column(name = "description", nullable = false)
     private String description;
-
-    @Column(name = "category", nullable = false)
-    private String category;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "budget_category_id", nullable = false)
@@ -30,18 +31,12 @@ public class Expense {
     private Park park;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
+    @JoinColumn(name = "created_by")
     private User createdBy;
 
-    @Column(name = "status", nullable = false)
-    private String status;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approved_by")
-    private User approvedBy;
-
-    @Column(name = "approved_at")
-    private LocalDateTime approvedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audit_status", nullable = false)
+    private AuditStatus auditStatus = AuditStatus.UNJUSTIFIED;
 
     @Column(name = "receipt_url")
     private String receiptUrl;
@@ -55,41 +50,41 @@ public class Expense {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    public enum AuditStatus {
+        PASSED, FAILED, UNJUSTIFIED
+    }
+
     // Constructors
     public Expense() {}
 
-    public Expense(BigDecimal amount, String description, String category, BudgetCategory budgetCategory,
-                   Park park, User createdBy, String status) {
+    public Expense(Budget budget, BigDecimal amount, String description, BudgetCategory budgetCategory,
+                   Park park, User createdBy, AuditStatus auditStatus) {
+        this.budget = budget;
         this.amount = amount;
         this.description = description;
-        this.category = category;
         this.budgetCategory = budgetCategory;
         this.park = park;
         this.createdBy = createdBy;
-        this.status = status;
+        this.auditStatus = auditStatus != null ? auditStatus : AuditStatus.UNJUSTIFIED;
     }
 
     // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+    public Budget getBudget() { return budget; }
+    public void setBudget(Budget budget) { this.budget = budget; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
     public BudgetCategory getBudgetCategory() { return budgetCategory; }
     public void setBudgetCategory(BudgetCategory budgetCategory) { this.budgetCategory = budgetCategory; }
     public Park getPark() { return park; }
     public void setPark(Park park) { this.park = park; }
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public User getApprovedBy() { return approvedBy; }
-    public void setApprovedBy(User approvedBy) { this.approvedBy = approvedBy; }
-    public LocalDateTime getApprovedAt() { return approvedAt; }
-    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+    public AuditStatus getAuditStatus() { return auditStatus; }
+    public void setAuditStatus(AuditStatus auditStatus) { this.auditStatus = auditStatus; }
     public String getReceiptUrl() { return receiptUrl; }
     public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
     public String getCurrency() { return currency; }

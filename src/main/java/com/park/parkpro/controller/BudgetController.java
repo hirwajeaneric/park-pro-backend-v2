@@ -22,9 +22,10 @@ public class BudgetController {
     private final BudgetService budgetService;
     private final ExpenseService expenseService;
     private final WithdrawRequestService withdrawRequestService;
-    private final FundingRequestService fundingRequestService; // New dependency
+    private final FundingRequestService fundingRequestService;
 
-    public BudgetController(BudgetService budgetService, ExpenseService expenseService, WithdrawRequestService withdrawRequestService, FundingRequestService fundingRequestService) {
+    public BudgetController(BudgetService budgetService, ExpenseService expenseService,
+                            WithdrawRequestService withdrawRequestService, FundingRequestService fundingRequestService) {
         this.budgetService = budgetService;
         this.expenseService = expenseService;
         this.withdrawRequestService = withdrawRequestService;
@@ -41,8 +42,7 @@ public class BudgetController {
         }
         String token = authHeader.substring(7);
         Budget budget = budgetService.createBudget(parkId, request.getFiscalYear(), request.getTotalAmount(), "DRAFT", token);
-        BudgetResponseDto response = mapToDto(budget);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapToDto(budget));
     }
 
     @PatchMapping("/budgets/{budgetId}")
@@ -55,8 +55,7 @@ public class BudgetController {
         }
         String token = authHeader.substring(7);
         Budget budget = budgetService.updateBudget(budgetId, request.getTotalAmount(), request.getStatus(), token);
-        BudgetResponseDto response = mapToDto(budget);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapToDto(budget));
     }
 
     @PostMapping("/budgets/{budgetId}/approve")
@@ -68,8 +67,7 @@ public class BudgetController {
         }
         String token = authHeader.substring(7);
         Budget budget = budgetService.approveBudget(budgetId, token);
-        BudgetResponseDto response = mapToDto(budget);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapToDto(budget));
     }
 
     @PostMapping("/budgets/{budgetId}/reject")
@@ -81,44 +79,24 @@ public class BudgetController {
         }
         String token = authHeader.substring(7);
         Budget budget = budgetService.rejectBudget(budgetId, token);
-        BudgetResponseDto response = mapToDto(budget);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapToDto(budget));
     }
 
     @GetMapping("/budgets/{budgetId}")
     public ResponseEntity<BudgetResponseDto> getBudget(
             @PathVariable UUID budgetId,
-            @RequestHeader("Authorization") String authHeader
-    ) {
+            @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         Budget budget = budgetService.getBudgetById(budgetId);
-        BudgetResponseDto response = mapToDto(budget);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapToDto(budget));
     }
 
     @GetMapping("/parks/{parkId}/budgets")
     public ResponseEntity<List<BudgetResponseDto>> getBudgetsByPark(@PathVariable UUID parkId) {
         List<Budget> budgets = budgetService.getBudgetsByPark(parkId);
-        List<BudgetResponseDto> response = budgets.stream().map(this::mapToDto).collect(Collectors.toList());
-        return ResponseEntity.ok(response);
-    }
-
-    private BudgetResponseDto mapToDto(Budget budget) {
-        return new BudgetResponseDto(
-                budget.getId(),
-                budget.getPark().getId(),
-                budget.getFiscalYear(),
-                budget.getTotalAmount(),
-                budget.getBalance(),
-                budget.getStatus(),
-                budget.getCreatedBy().getId(),
-                budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
-                budget.getApprovedAt(),
-                budget.getCreatedAt(),
-                budget.getUpdatedAt()
-        );
+        return ResponseEntity.ok(budgets.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
 
     // Expense Endpoints
@@ -131,42 +109,68 @@ public class BudgetController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Expense expense = expenseService.createExpense(budgetId, request.getAmount(), request.getDescription(),
-                request.getCategory(), request.getBudgetCategoryId(), request.getParkId(), request.getReceiptUrl(), token);
+        Expense expense = expenseService.createExpense(request, token);
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
-    @PostMapping("/budgets/{budgetId}/expenses/{expenseId}/approve")
-    public ResponseEntity<ExpenseResponseDto> approveExpense(
+    @GetMapping("/parks/{parkId}/expenses")
+    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByPark(
+            @PathVariable UUID parkId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<Expense> expenses = expenseService.getExpensesByPark(parkId, token);
+        return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/budgets/{budgetId}/expenses")
+    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByBudget(
             @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<Expense> expenses = expenseService.getExpensesByBudget(budgetId, token);
+        return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/expenses/{expenseId}")
+    public ResponseEntity<ExpenseResponseDto> getExpenseById(
             @PathVariable UUID expenseId,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Expense expense = expenseService.approveExpense(expenseId, token);
+        Expense expense = expenseService.getExpenseById(expenseId, token);
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
-    @PostMapping("/budgets/{budgetId}/expenses/{expenseId}/reject")
-    public ResponseEntity<ExpenseResponseDto> rejectExpense(
-            @PathVariable UUID budgetId,
+    @PatchMapping("/expenses/{expenseId}")
+    public ResponseEntity<ExpenseResponseDto> updateExpense(
             @PathVariable UUID expenseId,
+            @Valid @RequestBody UpdateExpenseRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Expense expense = expenseService.rejectExpense(expenseId, token);
+        Expense expense = expenseService.updateExpense(expenseId, request, token);
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
-    @GetMapping("/budgets/{budgetId}/categories/{categoryId}/expenses")
+    @GetMapping("/budgets/categories/{categoryId}/expenses")
     public ResponseEntity<List<ExpenseResponseDto>> getExpensesByBudgetCategory(
-            @PathVariable UUID budgetId,
-            @PathVariable UUID categoryId) {
-        List<Expense> expenses = expenseService.getExpensesByBudgetCategory(categoryId);
+            @PathVariable UUID categoryId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<Expense> expenses = expenseService.getExpensesByBudgetCategory(categoryId, token);
         return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
     }
 
@@ -220,6 +224,7 @@ public class BudgetController {
         return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
     }
 
+    // Funding Request Endpoints
     @PostMapping("/parks/{parkId}/funding-requests")
     public ResponseEntity<FundingRequestResponseDto> createFundingRequest(
             @PathVariable UUID parkId,
@@ -267,42 +272,22 @@ public class BudgetController {
         return ResponseEntity.ok(requests.stream().map(this::mapToFundingRequestDto).collect(Collectors.toList()));
     }
 
-    private FundingRequestResponseDto mapToFundingRequestDto(FundingRequest request) {
-        return new FundingRequestResponseDto(
-                request.getId(), request.getPark().getId(), request.getBudget().getId(),
-                request.getRequestedAmount(), request.getApprovedAmount(), request.getRequestType(),
-                request.getReason(), request.getRequester().getId(),
-                request.getApprover() != null ? request.getApprover().getId() : null,
-                request.getStatus(), request.getRejectionReason(), request.getApprovedAt(),
-                request.getCurrency(), request.getCreatedAt(), request.getUpdatedAt()
-        );
-    }
-
     // Mapping Methods
-    private BudgetResponseDto mapToBudgetDto(Budget budget) {
+    private BudgetResponseDto mapToDto(Budget budget) {
         return new BudgetResponseDto(
                 budget.getId(), budget.getPark().getId(), budget.getFiscalYear(), budget.getTotalAmount(),
                 budget.getBalance(), budget.getStatus(), budget.getCreatedBy().getId(),
                 budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
-                budget.getApprovedAt(), budget.getCreatedAt(), budget.getUpdatedAt()
-        );
-    }
-
-    private BudgetCategoryResponseDto mapToCategoryDto(BudgetCategory category) {
-        return new BudgetCategoryResponseDto(
-                category.getId(), category.getBudget().getId(), category.getName(), category.getAllocatedAmount(),
-                category.getUsedAmount(), category.getBalance(), category.getCreatedAt(), category.getUpdatedAt()
-        );
+                budget.getApprovedAt(), budget.getCreatedAt(), budget.getUpdatedAt());
     }
 
     private ExpenseResponseDto mapToExpenseDto(Expense expense) {
         return new ExpenseResponseDto(
-                expense.getId(), expense.getAmount(), expense.getDescription(), expense.getCategory(),
-                expense.getBudgetCategory().getId(), expense.getPark().getId(), expense.getCreatedBy().getId(),
-                expense.getStatus(), expense.getApprovedBy() != null ? expense.getApprovedBy().getId() : null,
-                expense.getApprovedAt(), expense.getReceiptUrl(), expense.getCurrency(),
-                expense.getCreatedAt(), expense.getUpdatedAt()
-        );
+                expense.getId(), expense.getBudget().getId(), expense.getAmount(), expense.getDescription(),
+                expense.getBudgetCategory().getId(), expense.getBudgetCategory().getName(),
+                expense.getPark().getId(), expense.getCreatedBy() != null ? expense.getCreatedBy().getId() : null,
+                expense.getAuditStatus(), expense.getReceiptUrl(), expense.getCurrency(),
+                expense.getCreatedAt(), expense.getUpdatedAt());
     }
 
     private WithdrawRequestResponseDto mapToWithdrawRequestDto(WithdrawRequest request) {
@@ -311,7 +296,16 @@ public class BudgetController {
                 request.getRequester().getId(), request.getApprover() != null ? request.getApprover().getId() : null,
                 request.getBudgetCategory().getId(), request.getStatus(), request.getApprovedAt(),
                 request.getRejectionReason(), request.getPark().getId(), request.getCurrency(),
-                request.getCreatedAt(), request.getUpdatedAt()
-        );
+                request.getCreatedAt(), request.getUpdatedAt());
+    }
+
+    private FundingRequestResponseDto mapToFundingRequestDto(FundingRequest request) {
+        return new FundingRequestResponseDto(
+                request.getId(), request.getPark().getId(), request.getBudget().getId(),
+                request.getRequestedAmount(), request.getApprovedAmount(), request.getRequestType(),
+                request.getReason(), request.getRequester().getId(),
+                request.getApprover() != null ? request.getApprover().getId() : null,
+                request.getStatus(), request.getRejectionReason(), request.getApprovedAt(),
+                request.getCurrency(), request.getCreatedAt(), request.getUpdatedAt());
     }
 }

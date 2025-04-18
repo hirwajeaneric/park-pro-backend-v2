@@ -109,6 +109,18 @@ public class UserController {
         return ResponseEntity.ok(mapToUserResponseDto(user));
     }
 
+    @GetMapping("/parks/{parkId}/users")
+    public ResponseEntity<List<UserResponseDto>> getUsersByPark(
+            @PathVariable UUID parkId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<User> users = userService.getUsersByParkId(parkId);
+        return ResponseEntity.ok(users.stream().map(this::mapToUserResponseDto).collect(Collectors.toList()));
+    }
+
     @GetMapping("/users/me")
     public ResponseEntity<UserResponseDto> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

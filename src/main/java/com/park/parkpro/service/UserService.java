@@ -92,6 +92,7 @@ public class UserService {
             String verificationCode = String.format("%06d", new Random().nextInt(999999));
             VerificationToken token = new VerificationToken(verificationCode, savedUser, LocalDateTime.now().plusHours(24));
             verificationTokenRepository.save(token);
+            System.out.println(verificationCode);
             sendVerificationEmail(savedUser.getEmail(), verificationCode);
             return savedUser;
         }
@@ -110,6 +111,7 @@ public class UserService {
         String newVerificationCode = String.format("%06d", new Random().nextInt(999999));
         VerificationToken newToken = new VerificationToken(newVerificationCode, user, LocalDateTime.now().plusHours(24));
         verificationTokenRepository.save(newToken);
+        System.out.println(newVerificationCode);
         // Send the new code via email
         sendVerificationEmail(email, newVerificationCode);
         return ResponseEntity.ok("A new verification code was sent to your email.");

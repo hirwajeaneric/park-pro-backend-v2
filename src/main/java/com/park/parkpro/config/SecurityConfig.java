@@ -39,24 +39,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/health", "/api/login", "/api/signup", "/api/verify-account", "/api/password-reset/**", "/api/new-verification-code").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers("/api/users/{userId}").authenticated() // View profile
+                        .requestMatchers("/api/users/{userId}").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/admin").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/{userId}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}").authenticated() // Update profile
-                        .requestMatchers("/api/users/**").hasRole("ADMIN") // Other user endpoints restricted to ADMIN
-                        .requestMatchers("/api/users", "/api/users/**").hasAnyRole("ADMIN", "FINANCE_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}").authenticated()
+                        .requestMatchers("/api/parks/{parkId}/users").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/debug/auth").authenticated()
                         .requestMatchers("/api/parks/{parkId}/budgets").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/reject").hasRole("GOVERNMENT_OFFICER")
-                        .requestMatchers("/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "PARK_MANAGER", "AUDITOR") // GET
+                        .requestMatchers("/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "PARK_MANAGER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/budgets/{budgetId}/categories/{categoryId}").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.DELETE, "/api/budgets/{budgetId}/categories/{categoryId}").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/expenses").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER")
-                        .requestMatchers("/api/budgets/{budgetId}/expenses/{expenseId}/approve").hasAnyRole("ADMIN", "FINANCE_OFFICER")
-                        .requestMatchers("/api/budgets/{budgetId}/expenses/{expenseId}/reject").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers("/api/parks/{parkId}/expenses", "/api/budgets/{budgetId}/expenses", "/api/expenses/{expenseId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/expenses/{expenseId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER")
                         .requestMatchers("/api/budgets/{budgetId}/categories/{categoryId}/expenses").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR", "PARK_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/withdraw-requests").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/budgets/{budgetId}/withdraw-requests/{withdrawRequestId}/approve").hasAnyRole("ADMIN", "FINANCE_OFFICER")
@@ -86,7 +86,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/opportunities").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunities/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/opportunities/my").hasAnyRole("ADMIN", "PARK_MANAGER")
-                        .requestMatchers("/api/opportunities", "/api/opportunities/{opportunityId}", "/api/park/{parkId}/opportunities").permitAll() // Public access
+                        .requestMatchers("/api/opportunities", "/api/opportunities/{opportunityId}", "/api/park/{parkId}/opportunities").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/opportunity-applications").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunity-applications/{applicationId}/status").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/opportunity-applications/opportunity/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER")
@@ -110,19 +110,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all origins for development (use specific origins in production)
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080"));
-        // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
-        // Allow headers like Authorization and Content-Type
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        // Allow credentials (e.g., cookies, Authorization headers) if needed
         configuration.setAllowCredentials(true);
-        // Set max age for CORS preflight cache
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Apply to all endpoints
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
