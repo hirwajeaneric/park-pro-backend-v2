@@ -140,6 +140,8 @@ public class UserController {
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateUserProfileRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
+        System.out.println(userId);
+        System.out.println(request);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
