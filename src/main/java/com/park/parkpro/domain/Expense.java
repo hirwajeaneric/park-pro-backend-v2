@@ -31,7 +31,7 @@ public class Expense {
     private Park park;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
     @Enumerated(EnumType.STRING)

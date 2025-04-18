@@ -149,6 +149,17 @@ public class BudgetController {
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
+    @GetMapping("/expenses/my-submissions")
+    public ResponseEntity<List<ExpenseResponseDto>> getMySubmittedExpenses(
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<Expense> expenses = expenseService.getExpensesByCreatedBy(token);
+        return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
+    }
+
     @PatchMapping("/expenses/{expenseId}")
     public ResponseEntity<ExpenseResponseDto> updateExpense(
             @PathVariable UUID expenseId,
@@ -160,6 +171,18 @@ public class BudgetController {
         String token = authHeader.substring(7);
         Expense expense = expenseService.updateExpense(expenseId, request, token);
         return ResponseEntity.ok(mapToExpenseDto(expense));
+    }
+
+    @DeleteMapping("/expenses/{expenseId}")
+    public ResponseEntity<Void> deleteExpense(
+            @PathVariable UUID expenseId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        expenseService.deleteExpense(expenseId, token);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/budgets/categories/{categoryId}/expenses")

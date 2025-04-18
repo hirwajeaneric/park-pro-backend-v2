@@ -74,6 +74,14 @@ public class ExpenseService {
             throw new BadRequestException("Park does not match the budget's park");
         }
 
+        // Update budget and category balances
+        budgetCategory.setUsedAmount(budgetCategory.getUsedAmount().add(request.getAmount()));
+        budgetCategory.setBalance(budgetCategory.getAllocatedAmount().subtract(budgetCategory.getUsedAmount()));
+        budgetCategoryRepository.save(budgetCategory);
+
+        budget.setBalance(budget.getBalance().subtract(request.getAmount()));
+        budgetRepository.save(budget);
+
         Expense expense = new Expense(budget, request.getAmount(), request.getDescription(),
                 budgetCategory, park, createdBy, Expense.AuditStatus.UNJUSTIFIED);
         if (request.getReceiptUrl() != null) {
@@ -119,6 +127,13 @@ public class ExpenseService {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         return expenseRepository.findByBudgetId(budgetId);
+    }
+
+    public List<Expense> getExpensesByCreatedBy(String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        return expenseRepository.findByCreatedById(user.getId());
     }
 
     public Expense getExpenseById(UUID expenseId, String token) {
@@ -217,5 +232,21 @@ public class ExpenseService {
 
         expense.setUpdatedAt(LocalDateTime.now());
         return expenseRepository.save(expense);
+    }
+
+    @Transactional
+    public void deleteExpense(UUID expenseId, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        if (!List.of("FINANCE_OFFICER", "ADMIN").contains(user.getRole())) {
+            throw new ForbiddenException("Only FINANCE_OFFICER or ADMIN can delete expenses");
+        }
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new NotFoundException("Expense not found with ID: " + expenseId));
+
+        // The database trigger will handle restoring funds to budget and budget_category
+        expenseRepository.delete(expense);
     }
 }
