@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/parks/{parkId}/users").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/debug/auth").authenticated()
-                        .requestMatchers("/api/parks/{parkId}/budgets").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers("/api/parks/{parkId}/budgets").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/reject").hasRole("GOVERNMENT_OFFICER")

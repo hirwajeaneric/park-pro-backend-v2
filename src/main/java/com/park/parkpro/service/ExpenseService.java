@@ -129,11 +129,15 @@ public class ExpenseService {
         return expenseRepository.findByBudgetId(budgetId);
     }
 
-    public List<Expense> getExpensesByCreatedBy(String token) {
+    public List<Expense> getExpensesByCreatedBy(UUID budgetId, String token) {
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        return expenseRepository.findByCreatedById(user.getId());
+
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
+
+        return expenseRepository.findByCreatedByIdAndBudgetId(user.getId(), budgetId);
     }
 
     public Expense getExpenseById(UUID expenseId, String token) {

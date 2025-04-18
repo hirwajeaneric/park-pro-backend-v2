@@ -11,4 +11,5 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
     List<Expense> findByParkId(UUID parkId);
     List<Expense> findByBudgetId(UUID budgetId);
     List<Expense> findByCreatedById(UUID createdById);
+    List<Expense> findByCreatedByIdAndBudgetId(UUID createdById, UUID budgetId);
 }

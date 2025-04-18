@@ -95,6 +95,7 @@ public class BudgetController {
 
     @GetMapping("/parks/{parkId}/budgets")
     public ResponseEntity<List<BudgetResponseDto>> getBudgetsByPark(@PathVariable UUID parkId) {
+        System.out.println("Fetching budgets by park id: " + parkId);
         List<Budget> budgets = budgetService.getBudgetsByPark(parkId);
         return ResponseEntity.ok(budgets.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
@@ -149,14 +150,15 @@ public class BudgetController {
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
-    @GetMapping("/expenses/my-submissions")
+    @GetMapping("/budgets/{budgetId}/expenses/my-submissions")
     public ResponseEntity<List<ExpenseResponseDto>> getMySubmittedExpenses(
+            @PathVariable UUID budgetId,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        List<Expense> expenses = expenseService.getExpensesByCreatedBy(token);
+        List<Expense> expenses = expenseService.getExpensesByCreatedBy(budgetId, token);
         return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
     }
 
