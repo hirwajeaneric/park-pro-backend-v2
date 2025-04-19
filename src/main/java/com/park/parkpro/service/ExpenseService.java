@@ -1,20 +1,13 @@
 package com.park.parkpro.service;
 
-import com.park.parkpro.domain.Budget;
-import com.park.parkpro.domain.BudgetCategory;
-import com.park.parkpro.domain.Expense;
-import com.park.parkpro.domain.Park;
-import com.park.parkpro.domain.User;
+import com.park.parkpro.domain.*;
 import com.park.parkpro.dto.CreateExpenseRequestDto;
+import com.park.parkpro.dto.UpdateAuditStatusDto;
 import com.park.parkpro.dto.UpdateExpenseRequestDto;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
-import com.park.parkpro.repository.BudgetRepository;
-import com.park.parkpro.repository.BudgetCategoryRepository;
-import com.park.parkpro.repository.ExpenseRepository;
-import com.park.parkpro.repository.ParkRepository;
-import com.park.parkpro.repository.UserRepository;
+import com.park.parkpro.repository.*;
 import com.park.parkpro.security.JwtUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,16 +23,18 @@ public class ExpenseService {
     private final BudgetRepository budgetRepository;
     private final BudgetCategoryRepository budgetCategoryRepository;
     private final ParkRepository parkRepository;
+    private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
     public ExpenseService(ExpenseRepository expenseRepository, BudgetRepository budgetRepository,
-                          BudgetCategoryRepository budgetCategoryRepository, ParkRepository parkRepository,
+                          BudgetCategoryRepository budgetCategoryRepository, ParkRepository parkRepository, AuditLogRepository auditLogRepository,
                           UserRepository userRepository, JwtUtil jwtUtil) {
         this.expenseRepository = expenseRepository;
         this.budgetRepository = budgetRepository;
         this.budgetCategoryRepository = budgetCategoryRepository;
         this.parkRepository = parkRepository;
+        this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
     }
@@ -83,7 +78,7 @@ public class ExpenseService {
         budgetRepository.save(budget);
 
         Expense expense = new Expense(budget, request.getAmount(), request.getDescription(),
-                budgetCategory, park, createdBy, Expense.AuditStatus.UNJUSTIFIED);
+                budgetCategory, park, createdBy, AuditStatus.UNJUSTIFIED);
         if (request.getReceiptUrl() != null) {
             expense.setReceiptUrl(request.getReceiptUrl());
         }
@@ -252,5 +247,37 @@ public class ExpenseService {
 
         // The database trigger will handle restoring funds to budget and budget_category
         expenseRepository.delete(expense);
+    }
+
+    @Transactional
+    public Expense updateAuditStatus(UUID expenseId, UpdateAuditStatusDto request, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        if (!List.of("AUDITOR").contains(user.getRole())) {
+            throw new ForbiddenException("Only AUDITOR can update audit status");
+        }
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new NotFoundException("Expense not found with ID: " + expenseId));
+
+        String oldAuditStatus = String.valueOf(expense.getAuditStatus());
+        expense.setAuditStatus(request.getAuditStatus());
+        expense.setUpdatedAt(LocalDateTime.now());
+        expense = expenseRepository.save(expense);
+
+        // Note: The database trigger will log the audit_status change, but we set performed_by here
+        if (!oldAuditStatus.equals(request.getAuditStatus())) {
+            auditLogRepository.save(new AuditLog(
+                    "UPDATE_AUDIT_STATUS",
+                    "EXPENSE",
+                    expenseId,
+                    "Changed audit_status from " + oldAuditStatus + " to " + request.getAuditStatus(),
+                    user,
+                    LocalDateTime.now()
+            ));
+        }
+
+        return expense;
     }
 }

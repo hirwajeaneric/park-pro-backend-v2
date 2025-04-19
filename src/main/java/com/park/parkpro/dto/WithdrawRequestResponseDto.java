@@ -1,5 +1,8 @@
 package com.park.parkpro.dto;
 
+import com.park.parkpro.domain.AuditStatus;
+import com.park.parkpro.domain.WithdrawRequest.WithdrawRequestStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -12,7 +15,11 @@ public class WithdrawRequestResponseDto {
     private UUID requesterId;
     private UUID approverId;
     private UUID budgetCategoryId;
-    private String status;
+    private String budgetCategoryName;
+    private UUID budgetId;
+    private String receiptUrl;
+    private WithdrawRequestStatus status;
+    private AuditStatus auditStatus;
     private LocalDateTime approvedAt;
     private String rejectionReason;
     private UUID parkId;
@@ -21,7 +28,8 @@ public class WithdrawRequestResponseDto {
     private LocalDateTime updatedAt;
 
     public WithdrawRequestResponseDto(UUID id, BigDecimal amount, String reason, String description,
-                                      UUID requesterId, UUID approverId, UUID budgetCategoryId, String status,
+                                      UUID requesterId, UUID approverId, UUID budgetCategoryId, String budgetCategoryName,
+                                      UUID budgetId, String receiptUrl, WithdrawRequestStatus status, AuditStatus auditStatus,
                                       LocalDateTime approvedAt, String rejectionReason, UUID parkId, String currency,
                                       LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
@@ -31,7 +39,11 @@ public class WithdrawRequestResponseDto {
         this.requesterId = requesterId;
         this.approverId = approverId;
         this.budgetCategoryId = budgetCategoryId;
+        this.budgetCategoryName = budgetCategoryName;
+        this.budgetId = budgetId;
+        this.receiptUrl = receiptUrl;
         this.status = status;
+        this.auditStatus = auditStatus;
         this.approvedAt = approvedAt;
         this.rejectionReason = rejectionReason;
         this.parkId = parkId;
@@ -48,7 +60,11 @@ public class WithdrawRequestResponseDto {
     public UUID getRequesterId() { return requesterId; }
     public UUID getApproverId() { return approverId; }
     public UUID getBudgetCategoryId() { return budgetCategoryId; }
-    public String getStatus() { return status; }
+    public String getBudgetCategoryName() { return budgetCategoryName; }
+    public UUID getBudgetId() { return budgetId; }
+    public String getReceiptUrl() { return receiptUrl; }
+    public WithdrawRequestStatus getStatus() { return status; }
+    public AuditStatus getAuditStatus() { return auditStatus; }
     public LocalDateTime getApprovedAt() { return approvedAt; }
     public String getRejectionReason() { return rejectionReason; }
     public UUID getParkId() { return parkId; }

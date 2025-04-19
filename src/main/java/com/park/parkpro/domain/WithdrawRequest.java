@@ -33,8 +33,20 @@ public class WithdrawRequest {
     @JoinColumn(name = "budget_category_id", nullable = false)
     private BudgetCategory budgetCategory;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "budget_id", nullable = false)
+    private Budget budget;
+
+    @Column(name = "receipt_url")
+    private String receiptUrl;
+
     @Column(name = "status", nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private WithdrawRequestStatus status = WithdrawRequestStatus.PENDING;
+
+    @Column(name = "audit_status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private AuditStatus auditStatus = AuditStatus.UNJUSTIFIED;
 
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
@@ -55,18 +67,26 @@ public class WithdrawRequest {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    public enum WithdrawRequestStatus {
+        REJECTED, APPROVED, PENDING
+    }
+
     // Constructors
     public WithdrawRequest() {}
 
     public WithdrawRequest(BigDecimal amount, String reason, String description, User requester,
-                           BudgetCategory budgetCategory, String status, Park park) {
+                           BudgetCategory budgetCategory, Budget budget, String receiptUrl,
+                           WithdrawRequestStatus status, Park park) {
         this.amount = amount;
         this.reason = reason;
         this.description = description;
         this.requester = requester;
         this.budgetCategory = budgetCategory;
+        this.budget = budget;
+        this.receiptUrl = receiptUrl;
         this.status = status;
         this.park = park;
+        this.auditStatus = AuditStatus.UNJUSTIFIED;
     }
 
     // Getters and Setters
@@ -84,8 +104,14 @@ public class WithdrawRequest {
     public void setApprover(User approver) { this.approver = approver; }
     public BudgetCategory getBudgetCategory() { return budgetCategory; }
     public void setBudgetCategory(BudgetCategory budgetCategory) { this.budgetCategory = budgetCategory; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public Budget getBudget() { return budget; }
+    public void setBudget(Budget budget) { this.budget = budget; }
+    public String getReceiptUrl() { return receiptUrl; }
+    public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
+    public WithdrawRequestStatus getStatus() { return status; }
+    public void setStatus(WithdrawRequestStatus status) { this.status = status; }
+    public AuditStatus getAuditStatus() { return auditStatus; }
+    public void setAuditStatus(AuditStatus auditStatus) { this.auditStatus = auditStatus; }
     public LocalDateTime getApprovedAt() { return approvedAt; }
     public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
     public String getRejectionReason() { return rejectionReason; }

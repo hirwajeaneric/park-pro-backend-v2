@@ -14,14 +14,18 @@ public class CreateWithdrawRequestDto {
 
     @NotBlank(message = "Reason is required")
     private String reason;
-
     private String description;
 
     @NotNull(message = "Budget category ID is required")
     private UUID budgetCategoryId;
 
+    @NotNull(message = "Budget ID is required")
+    private UUID budgetId;
+
     @NotNull(message = "Park ID is required")
     private UUID parkId;
+
+    private String receiptUrl;
 
     // Getters and Setters
     public BigDecimal getAmount() { return amount; }
@@ -32,6 +36,10 @@ public class CreateWithdrawRequestDto {
     public void setDescription(String description) { this.description = description; }
     public UUID getBudgetCategoryId() { return budgetCategoryId; }
     public void setBudgetCategoryId(UUID budgetCategoryId) { this.budgetCategoryId = budgetCategoryId; }
+    public UUID getBudgetId() { return budgetId; }
+    public void setBudgetId(UUID budgetId) { this.budgetId = budgetId; }
     public UUID getParkId() { return parkId; }
     public void setParkId(UUID parkId) { this.parkId = parkId; }
+    public String getReceiptUrl() { return receiptUrl; }
+    public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
 }

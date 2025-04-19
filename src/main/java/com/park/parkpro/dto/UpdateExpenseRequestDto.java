@@ -1,5 +1,6 @@
 package com.park.parkpro.dto;
 
+import com.park.parkpro.domain.AuditStatus;
 import com.park.parkpro.domain.Expense;
 
 import java.math.BigDecimal;
@@ -10,7 +11,7 @@ public class UpdateExpenseRequestDto {
     private String description;
     private UUID budgetCategoryId;
     private String receiptUrl;
-    private Expense.AuditStatus auditStatus;
+    private AuditStatus auditStatus;
 
     // Getters and Setters
     public BigDecimal getAmount() { return amount; }
@@ -21,6 +22,6 @@ public class UpdateExpenseRequestDto {
     public void setBudgetCategoryId(UUID budgetCategoryId) { this.budgetCategoryId = budgetCategoryId; }
     public String getReceiptUrl() { return receiptUrl; }
     public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
-    public Expense.AuditStatus getAuditStatus() { return auditStatus; }
-    public void setAuditStatus(Expense.AuditStatus auditStatus) { this.auditStatus = auditStatus; }
+    public AuditStatus getAuditStatus() { return auditStatus; }
+    public void setAuditStatus(AuditStatus auditStatus) { this.auditStatus = auditStatus; }
 }

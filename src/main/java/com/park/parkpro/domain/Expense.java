@@ -50,10 +50,6 @@ public class Expense {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    public enum AuditStatus {
-        PASSED, FAILED, UNJUSTIFIED
-    }
-
     // Constructors
     public Expense() {}
 

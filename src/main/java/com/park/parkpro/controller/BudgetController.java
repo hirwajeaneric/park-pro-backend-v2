@@ -95,7 +95,6 @@ public class BudgetController {
 
     @GetMapping("/parks/{parkId}/budgets")
     public ResponseEntity<List<BudgetResponseDto>> getBudgetsByPark(@PathVariable UUID parkId) {
-        System.out.println("Fetching budgets by park id: " + parkId);
         List<Budget> budgets = budgetService.getBudgetsByPark(parkId);
         return ResponseEntity.ok(budgets.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
@@ -175,6 +174,19 @@ public class BudgetController {
         return ResponseEntity.ok(mapToExpenseDto(expense));
     }
 
+    @PatchMapping("/expenses/{expenseId}/audit-status")
+    public ResponseEntity<ExpenseResponseDto> updateExpenseAuditStatus(
+            @PathVariable UUID expenseId,
+            @Valid @RequestBody UpdateAuditStatusDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        Expense expense = expenseService.updateAuditStatus(expenseId, request, token);
+        return ResponseEntity.ok(mapToExpenseDto(expense));
+    }
+
     @DeleteMapping("/expenses/{expenseId}")
     public ResponseEntity<Void> deleteExpense(
             @PathVariable UUID expenseId,
@@ -209,8 +221,7 @@ public class BudgetController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        WithdrawRequest withdrawRequest = withdrawRequestService.createWithdrawRequest(budgetId, request.getAmount(),
-                request.getReason(), request.getDescription(), request.getBudgetCategoryId(), request.getParkId(), token);
+        WithdrawRequest withdrawRequest = withdrawRequestService.createWithdrawRequest(budgetId, request, token);
         return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
     }
 
@@ -241,10 +252,89 @@ public class BudgetController {
         return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
     }
 
+    @GetMapping("/budgets/{budgetId}/withdraw-requests")
+    public ResponseEntity<List<WithdrawRequestResponseDto>> getWithdrawRequestsByBudget(
+            @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<WithdrawRequest> requests = withdrawRequestService.getWithdrawRequestsByBudget(budgetId, token);
+        return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/budgets/{budgetId}/withdraw-requests/my-submissions")
+    public ResponseEntity<List<WithdrawRequestResponseDto>> getMySubmittedWithdrawRequests(
+            @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<WithdrawRequest> requests = withdrawRequestService.getWithdrawRequestsByRequester(budgetId, token);
+        return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/withdraw-requests/{withdrawRequestId}")
+    public ResponseEntity<WithdrawRequestResponseDto> getWithdrawRequestById(
+            @PathVariable UUID withdrawRequestId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        WithdrawRequest request = withdrawRequestService.getWithdrawRequestById(withdrawRequestId, token);
+        return ResponseEntity.ok(mapToWithdrawRequestDto(request));
+    }
+
+    @PatchMapping("/withdraw-requests/{withdrawRequestId}")
+    public ResponseEntity<WithdrawRequestResponseDto> updateWithdrawRequest(
+            @PathVariable UUID withdrawRequestId,
+            @Valid @RequestBody UpdateWithdrawRequestDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        WithdrawRequest withdrawRequest = withdrawRequestService.updateWithdrawRequest(withdrawRequestId, request, token);
+        return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
+    }
+
+    @PatchMapping("/withdraw-requests/{withdrawRequestId}/audit-status")
+    public ResponseEntity<WithdrawRequestResponseDto> updateWithdrawRequestAuditStatus(
+            @PathVariable UUID withdrawRequestId,
+            @Valid @RequestBody UpdateAuditStatusDto request,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        WithdrawRequest withdrawRequest = withdrawRequestService.updateAuditStatus(withdrawRequestId, request, token);
+        return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
+    }
+
+    @DeleteMapping("/withdraw-requests/{withdrawRequestId}")
+    public ResponseEntity<Void> deleteWithdrawRequest(
+            @PathVariable UUID withdrawRequestId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        withdrawRequestService.deleteWithdrawRequest(withdrawRequestId, token);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/budgets/{budgetId}/categories/{categoryId}/withdraw-requests")
     public ResponseEntity<List<WithdrawRequestResponseDto>> getWithdrawRequestsByBudgetCategory(
             @PathVariable UUID budgetId,
-            @PathVariable UUID categoryId) {
+            @PathVariable UUID categoryId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
         List<WithdrawRequest> requests = withdrawRequestService.getWithdrawRequestsByBudgetCategory(categoryId);
         return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
     }
@@ -319,8 +409,9 @@ public class BudgetController {
         return new WithdrawRequestResponseDto(
                 request.getId(), request.getAmount(), request.getReason(), request.getDescription(),
                 request.getRequester().getId(), request.getApprover() != null ? request.getApprover().getId() : null,
-                request.getBudgetCategory().getId(), request.getStatus(), request.getApprovedAt(),
-                request.getRejectionReason(), request.getPark().getId(), request.getCurrency(),
+                request.getBudgetCategory().getId(), request.getBudgetCategory().getName(),
+                request.getBudget().getId(), request.getReceiptUrl(), request.getStatus(), request.getAuditStatus(),
+                request.getApprovedAt(), request.getRejectionReason(), request.getPark().getId(), request.getCurrency(),
                 request.getCreatedAt(), request.getUpdatedAt());
     }
 

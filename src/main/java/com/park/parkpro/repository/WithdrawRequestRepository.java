@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface WithdrawRequestRepository extends JpaRepository<WithdrawRequest, UUID> {
     List<WithdrawRequest> findByBudgetCategoryId(UUID budgetCategoryId);
+    List<WithdrawRequest> findByBudgetId(UUID budgetId);
+    List<WithdrawRequest> findByRequesterId(UUID requesterId);
+    List<WithdrawRequest> findByRequesterIdAndBudgetId(UUID requesterId, UUID budgetId);
 }
