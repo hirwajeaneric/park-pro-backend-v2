@@ -1,4 +1,3 @@
-// src/main/java/com/park/parkpro/dto/OpportunityResponseDto.java
 package com.park.parkpro.dto;
 
 import java.time.LocalDateTime;

@@ -225,9 +225,8 @@ public class BudgetController {
         return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
     }
 
-    @PostMapping("/budgets/{budgetId}/withdraw-requests/{withdrawRequestId}/approve")
+    @GetMapping("/budgets/withdraw-requests/{withdrawRequestId}/approve")
     public ResponseEntity<WithdrawRequestResponseDto> approveWithdrawRequest(
-            @PathVariable UUID budgetId,
             @PathVariable UUID withdrawRequestId,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -238,9 +237,8 @@ public class BudgetController {
         return ResponseEntity.ok(mapToWithdrawRequestDto(withdrawRequest));
     }
 
-    @PostMapping("/budgets/{budgetId}/withdraw-requests/{withdrawRequestId}/reject")
+    @PostMapping("/budgets/withdraw-requests/{withdrawRequestId}/reject")
     public ResponseEntity<WithdrawRequestResponseDto> rejectWithdrawRequest(
-            @PathVariable UUID budgetId,
             @PathVariable UUID withdrawRequestId,
             @RequestParam(required = false) String rejectionReason,
             @RequestHeader("Authorization") String authHeader) {

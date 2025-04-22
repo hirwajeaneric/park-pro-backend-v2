@@ -38,9 +38,6 @@ public class OpportunityService {
         String email = jwtUtil.getEmailFromToken(token);
         User creator = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("ADMIN", "PARK_MANAGER").contains(creator.getRole())) {
-            throw new ForbiddenException("Only ADMIN or PARK_MANAGER can create opportunities");
-        }
 
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
@@ -69,11 +66,6 @@ public class OpportunityService {
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         Opportunity opportunity = opportunityRepository.findById(opportunityId)
                 .orElseThrow(() -> new NotFoundException("Opportunity not found with ID: " + opportunityId));
-
-        if (!List.of("ADMIN", "PARK_MANAGER").contains(user.getRole()) ||
-                ("PARK_MANAGER".equals(user.getRole()) && !opportunity.getCreatedBy().getId().equals(user.getId()))) {
-            throw new ForbiddenException("Only the creator or ADMIN can update this opportunity");
-        }
 
         if (parkId != null) {
             Park park = parkRepository.findById(parkId)

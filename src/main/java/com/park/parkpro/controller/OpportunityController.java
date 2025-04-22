@@ -32,6 +32,7 @@ public class OpportunityController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
+        System.out.println("Request: " + request);
         Opportunity opportunity = opportunityService.createOpportunity(
                 request.getTitle(), request.getDescription(), request.getDetails(),
                 request.getType(), request.getStatus(), request.getVisibility(),
