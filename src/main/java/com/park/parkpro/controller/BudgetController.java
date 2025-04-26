@@ -54,7 +54,7 @@ public class BudgetController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Budget budget = budgetService.updateBudget(budgetId, request.getTotalAmount(), request.getStatus(), token);
+        Budget budget = budgetService.updateBudget(budgetId, request.getFiscalYear(), request.getTotalAmount(), request.getStatus(), token);
         return ResponseEntity.ok(mapToDto(budget));
     }
 

@@ -67,7 +67,7 @@ public class BudgetService {
     }
 
     @Transactional
-    public Budget updateBudget(UUID budgetId, BigDecimal totalAmount, String status, String token) {
+    public Budget updateBudget(UUID budgetId, Integer fiscalYear, BigDecimal totalAmount, String status, String token) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         if (!"DRAFT".equals(budget.getStatus())) {
@@ -85,6 +85,7 @@ public class BudgetService {
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
 
         budget.setTotalAmount(totalAmount);
+        budget.setFiscalYear(fiscalYear);
         budget.setBalance(totalAmount); // Reset balance since no expenses yet
         budget.setStatus(status);
         return budgetRepository.save(budget);
