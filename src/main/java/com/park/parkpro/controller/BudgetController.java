@@ -99,6 +99,18 @@ public class BudgetController {
         return ResponseEntity.ok(budgets.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
 
+    @GetMapping("/budgets/by-fiscal-year/{fiscalYear}")
+    public ResponseEntity<List<BudgetByFiscalYearResponseDto>> getBudgetsByFiscalYear(
+            @PathVariable Integer fiscalYear,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<BudgetByFiscalYearResponseDto> budgets = budgetService.getBudgetsByFiscalYear(fiscalYear, token);
+        return ResponseEntity.ok(budgets);
+    }
+
     // Expense Endpoints
     @PostMapping("/budgets/{budgetId}/expenses")
     public ResponseEntity<ExpenseResponseDto> createExpense(
@@ -392,6 +404,22 @@ public class BudgetController {
                 budget.getBalance(), budget.getStatus(), budget.getCreatedBy().getId(),
                 budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
                 budget.getApprovedAt(), budget.getCreatedAt(), budget.getUpdatedAt());
+    }
+
+    private BudgetByFiscalYearResponseDto mapToFiscalYearDto(Budget budget) {
+        return new BudgetByFiscalYearResponseDto(
+                budget.getId(),
+                budget.getPark().getId(),
+                budget.getPark().getName(),
+                budget.getFiscalYear(),
+                budget.getTotalAmount(),
+                budget.getBalance(),
+                budget.getStatus(),
+                budget.getCreatedBy().getId(),
+                budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
+                budget.getApprovedAt(),
+                budget.getCreatedAt(),
+                budget.getUpdatedAt());
     }
 
     private ExpenseResponseDto mapToExpenseDto(Expense expense) {

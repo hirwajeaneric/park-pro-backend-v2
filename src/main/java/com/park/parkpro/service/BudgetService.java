@@ -1,6 +1,7 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.*;
+import com.park.parkpro.dto.BudgetByFiscalYearResponseDto;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.exception.ConflictException;
 import com.park.parkpro.exception.ForbiddenException;
@@ -12,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BudgetService {
@@ -22,7 +25,8 @@ public class BudgetService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
-    public BudgetService(BudgetRepository budgetRepository, ParkRepository parkRepository, UserRepository userRepository, JwtUtil jwtUtil) {
+    public BudgetService(BudgetRepository budgetRepository, ParkRepository parkRepository,
+                         UserRepository userRepository, JwtUtil jwtUtil) {
         this.budgetRepository = budgetRepository;
         this.parkRepository = parkRepository;
         this.userRepository = userRepository;
@@ -31,7 +35,7 @@ public class BudgetService {
 
     public Budget getBudgetById(UUID budgetId) {
         return budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new NotFoundException("Budget not found with id: "));
+                .orElseThrow(() -> new NotFoundException("Budget not found with id: " + budgetId));
     }
 
     @Transactional
@@ -133,5 +137,38 @@ public class BudgetService {
             throw new NotFoundException("Park not found with ID: " + parkId);
         }
         return budgetRepository.findByParkId(parkId);
+    }
+
+    public List<BudgetByFiscalYearResponseDto> getBudgetsByFiscalYear(Integer fiscalYear, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        if (!List.of("GOVERNMENT_OFFICER", "ADMIN", "FINANCE_OFFICER").contains(user.getRole())) {
+            throw new ForbiddenException("Only GOVERNMENT_OFFICER, ADMIN, or FINANCE_OFFICER can view budgets by fiscal year");
+        }
+
+        List<Park> allParks = parkRepository.findAll();
+        List<Budget> budgets = budgetRepository.findByFiscalYear(fiscalYear);
+
+        return allParks.stream().map(park -> {
+            Budget budget = budgets.stream()
+                    .filter(b -> b.getPark().getId().equals(park.getId()))
+                    .findFirst()
+                    .orElse(null);
+            return new BudgetByFiscalYearResponseDto(
+                    budget != null ? budget.getId() : null,
+                    park.getId(),
+                    park.getName(),
+                    fiscalYear,
+                    budget != null ? budget.getTotalAmount() : null,
+                    budget != null ? budget.getBalance() : null,
+                    budget != null ? budget.getStatus() : null,
+                    budget != null ? budget.getCreatedBy().getId() : null,
+                    budget != null && budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
+                    budget != null ? budget.getApprovedAt() : null,
+                    budget != null ? budget.getCreatedAt() : null,
+                    budget != null ? budget.getUpdatedAt() : null
+            );
+        }).collect(Collectors.toList());
     }
 }

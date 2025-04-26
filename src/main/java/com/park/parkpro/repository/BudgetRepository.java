@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface BudgetRepository extends JpaRepository<Budget, UUID> {
     List<Budget> findByParkId(UUID parkId);
     Optional<Budget> findByParkIdAndFiscalYear(UUID parkId, Integer fiscalYear);
+    List<Budget> findByFiscalYear(Integer fiscalYear);
 }
