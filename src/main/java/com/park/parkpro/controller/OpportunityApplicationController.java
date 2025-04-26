@@ -80,6 +80,29 @@ public class OpportunityApplicationController {
         return ResponseEntity.ok(applications.stream().map(this::mapToApplicationDto).collect(Collectors.toList()));
     }
 
+    @GetMapping
+    public ResponseEntity<List<OpportunityApplicationResponseDto>> getAllApplications(
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<OpportunityApplication> applications = applicationService.getAllApplications(token);
+        return ResponseEntity.ok(applications.stream().map(this::mapToApplicationDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/park/{parkId}")
+    public ResponseEntity<List<OpportunityApplicationResponseDto>> getApplicationsByPark(
+            @PathVariable UUID parkId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        List<OpportunityApplication> applications = applicationService.getApplicationsByPark(parkId, token);
+        return ResponseEntity.ok(applications.stream().map(this::mapToApplicationDto).collect(Collectors.toList()));
+    }
+
     private OpportunityApplicationResponseDto mapToApplicationDto(OpportunityApplication application) {
         return new OpportunityApplicationResponseDto(
                 application.getId(), application.getOpportunity().getId(), application.getFirstName(),
