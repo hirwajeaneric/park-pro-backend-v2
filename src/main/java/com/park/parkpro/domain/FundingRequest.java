@@ -35,7 +35,7 @@ public class FundingRequest {
     private BigDecimal approvedAmount;
 
     @Column(name = "request_type", nullable = false)
-    private String requestType;
+    private String requestType; // "EXTRA_FUNDS" or "EMERGENCY_RELIEF"
 
     @Column(name = "reason", nullable = false)
     private String reason;
