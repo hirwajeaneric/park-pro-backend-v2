@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/budgets/{budgetId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/reject").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/income-streams").hasRole("FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.GET, "/api/budgets/{budgetId}/income-streams").hasAnyRole("FINANCE_OFFICE", "GOVERNMENT_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/budgets/{budgetId}/income-streams").hasAnyRole("FINANCE_OFFICER", "GOVERNMENT_OFFICER")
                         .requestMatchers(HttpMethod.GET, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.DELETE, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
