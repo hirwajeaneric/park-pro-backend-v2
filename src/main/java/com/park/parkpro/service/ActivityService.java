@@ -3,7 +3,6 @@ package com.park.parkpro.service;
 import com.park.parkpro.domain.Activity;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
-import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.ActivityRepository;
 import com.park.parkpro.repository.ParkRepository;
@@ -34,17 +33,8 @@ public class ActivityService {
 
     @Transactional
     public Activity createActivity(UUID parkId, String name, BigDecimal price, String description, String picture, Integer capacityPerDay, String token) {
-        String email = jwtUtil.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
-            throw new ForbiddenException("Only PARK_MANAGER or ADMIN can create activities");
-        }
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
-        if ("PARK_MANAGER".equals(user.getRole()) && !park.getId().equals(user.getPark().getId())) {
-            throw new ForbiddenException("PARK_MANAGER can only create activities for their assigned park");
-        }
 
         Activity activity = new Activity();
         activity.setName(name);
@@ -58,17 +48,8 @@ public class ActivityService {
 
     @Transactional
     public Activity updateActivity(UUID activityId, String name, BigDecimal price, String description, String picture, Integer capacityPerDay, String token) {
-        String email = jwtUtil.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
-            throw new ForbiddenException("Only PARK_MANAGER or ADMIN can update activities");
-        }
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new NotFoundException("Activity not found with ID: " + activityId));
-        if ("PARK_MANAGER".equals(user.getRole()) && !activity.getPark().getId().equals(user.getPark().getId())) {
-            throw new ForbiddenException("PARK_MANAGER can only update activities in their assigned park");
-        }
 
         if (name != null && !name.trim().isEmpty()) activity.setName(name);
         if (price != null) activity.setPrice(price);
@@ -81,17 +62,8 @@ public class ActivityService {
 
     @Transactional
     public void deleteActivity(UUID activityId, String token) {
-        String email = jwtUtil.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
-            throw new ForbiddenException("Only PARK_MANAGER or ADMIN can delete activities");
-        }
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new NotFoundException("Activity not found with ID: " + activityId));
-        if ("PARK_MANAGER".equals(user.getRole()) && !activity.getPark().getId().equals(user.getPark().getId())) {
-            throw new ForbiddenException("PARK_MANAGER can only delete activities in their assigned park");
-        }
 
         activityRepository.delete(activity);
     }

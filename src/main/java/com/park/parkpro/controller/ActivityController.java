@@ -32,6 +32,7 @@ public class ActivityController {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
+        System.out.println(parkId);
         String token = authHeader.substring(7);
         Activity activity = activityService.createActivity(parkId, request.getName(), request.getPrice(),
                 request.getDescription(), request.getPicture(), request.getCapacityPerDay(), token);
