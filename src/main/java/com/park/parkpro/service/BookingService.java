@@ -22,9 +22,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 public class BookingService {
+    private static final Logger LOGGER = Logger.getLogger(BookingService.class.getName());
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
     private final ParkRepository parkRepository;
@@ -66,13 +68,17 @@ public class BookingService {
             throw new BadRequestException("Visit date must be today or in the future");
         }
 
-        // Create PaymentIntent
+        // Create and confirm PaymentIntent
         Long amountInCents = activity.getPrice().multiply(new java.math.BigDecimal("100")).longValue();
         PaymentIntent paymentIntent = stripeService.createPaymentIntent(
                 amountInCents, "XAF", "Booking for " + activity.getName(), "temp_booking_id");
 
-        // Attach payment method and set to requires_confirmation
+        // Attach payment method and confirm
         paymentIntent = paymentIntent.update(Map.of("payment_method", paymentMethodId));
+        paymentIntent = stripeService.confirmPaymentIntent(paymentIntent.getId());
+        if (!"succeeded".equals(paymentIntent.getStatus())) {
+            throw new BadRequestException("Payment failed: " + paymentIntent.getLastPaymentError().getMessage());
+        }
 
         Booking booking = new Booking();
         booking.setVisitor(visitor);
@@ -80,43 +86,18 @@ public class BookingService {
         booking.setAmount(activity.getPrice());
         booking.setPark(park);
         booking.setVisitDate(visitDate);
-        booking.setStatus("PENDING");
-        booking.setPaymentReference(paymentIntent.getId()); // Store PaymentIntent ID
+        booking.setStatus("CONFIRMED");
+        booking.setPaymentReference(paymentIntent.getId());
+        booking.setStripePaymentIntentId(paymentIntent.getId());
+        booking.setStripePaymentStatus(paymentIntent.getStatus());
+        booking.setCurrency("XAF");
+        booking.setConfirmedAt(LocalDateTime.now());
         booking = bookingRepository.save(booking);
 
         // Update metadata with actual booking ID
         paymentIntent.update(Map.of("metadata", Map.of("booking_id", booking.getId().toString())));
-
+        LOGGER.info("Created and confirmed booking: ID=" + booking.getId() + ", Amount=" + booking.getAmount());
         return booking;
-    }
-
-    @Transactional
-    public Booking confirmBooking(UUID bookingId, String token) throws StripeException {
-        String email = jwtUtil.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
-            throw new ForbiddenException("Only PARK_MANAGER or ADMIN can confirm bookings");
-        }
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Booking not found with ID: " + bookingId));
-        if (!"PENDING".equals(booking.getStatus())) {
-            throw new BadRequestException("Only PENDING bookings can be confirmed");
-        }
-        if ("PARK_MANAGER".equals(user.getRole()) && !booking.getPark().getId().equals(user.getPark().getId())) {
-            throw new ForbiddenException("PARK_MANAGER can only confirm bookings for their assigned park");
-        }
-
-        // Confirm PaymentIntent
-        PaymentIntent paymentIntent = stripeService.confirmPaymentIntent(booking.getPaymentReference());
-        if (!"succeeded".equals(paymentIntent.getStatus())) {
-            throw new BadRequestException("Payment failed: " + paymentIntent.getLastPaymentError().getMessage());
-        }
-
-        booking.setStatus("CONFIRMED");
-        booking.setConfirmedAt(LocalDateTime.now());
-        booking.setUpdatedAt(LocalDateTime.now());
-        return bookingRepository.save(booking); // Trigger updates budget
     }
 
     @Transactional
@@ -130,12 +111,12 @@ public class BookingService {
         if ("VISITOR".equals(user.getRole()) && !booking.getVisitor().getId().equals(user.getId())) {
             throw new ForbiddenException("VISITOR can only cancel their own bookings");
         }
-        if (List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
+        if (List.of("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER").contains(user.getRole())) {
             if ("PARK_MANAGER".equals(user.getRole()) && !booking.getPark().getId().equals(user.getPark().getId())) {
                 throw new ForbiddenException("PARK_MANAGER can only cancel bookings for their assigned park");
             }
         } else if (!"VISITOR".equals(user.getRole())) {
-            throw new ForbiddenException("Only VISITOR, PARK_MANAGER, or ADMIN can cancel bookings");
+            throw new ForbiddenException("Only VISITOR, PARK_MANAGER, ADMIN, or FINANCE_OFFICER can cancel bookings");
         }
         if ("CANCELLED".equals(booking.getStatus())) {
             throw new BadRequestException("Booking is already cancelled");
@@ -160,16 +141,15 @@ public class BookingService {
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("PARK_MANAGER", "ADMIN").contains(user.getRole())) {
-            throw new ForbiddenException("Only PARK_MANAGER or ADMIN can view park bookings");
-        }
-        if ("PARK_MANAGER".equals(user.getRole()) && !parkId.equals(user.getPark().getId())) {
-            throw new ForbiddenException("PARK_MANAGER can only view bookings for their assigned park");
+        if (!List.of("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER", "AUDITOR").contains(user.getRole())) {
+            throw new ForbiddenException("Only PARK_MANAGER, ADMIN, FINANCE_OFFICER, or AUDITOR can view park bookings");
         }
         if (!parkRepository.existsById(parkId)) {
             throw new NotFoundException("Park not found with ID: " + parkId);
         }
-        return bookingRepository.findByParkId(parkId);
+        List<Booking> bookings = bookingRepository.findByParkId(parkId);
+        LOGGER.info("Retrieved " + bookings.size() + " bookings for parkId: " + parkId);
+        return bookings;
     }
 
     public Booking getBookingById(UUID bookingId) {

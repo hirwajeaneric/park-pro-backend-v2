@@ -12,14 +12,16 @@ public class DonationResponseDto {
     private String status;
     private String paymentReference;
     private String currency;
-    private String motiveForDonation; // New field
+    private String motiveForDonation;
+    private Integer fiscalYear;
     private LocalDateTime confirmedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public DonationResponseDto(UUID id, UUID donorId, UUID parkId, BigDecimal amount, String status,
                                String paymentReference, String currency, String motiveForDonation,
-                               LocalDateTime confirmedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                               Integer fiscalYear, LocalDateTime confirmedAt, LocalDateTime createdAt,
+                               LocalDateTime updatedAt) {
         this.id = id;
         this.donorId = donorId;
         this.parkId = parkId;
@@ -28,6 +30,7 @@ public class DonationResponseDto {
         this.paymentReference = paymentReference;
         this.currency = currency;
         this.motiveForDonation = motiveForDonation;
+        this.fiscalYear = fiscalYear;
         this.confirmedAt = confirmedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -42,6 +45,7 @@ public class DonationResponseDto {
     public String getPaymentReference() { return paymentReference; }
     public String getCurrency() { return currency; }
     public String getMotiveForDonation() { return motiveForDonation; }
+    public Integer getFiscalYear() { return fiscalYear; }
     public LocalDateTime getConfirmedAt() { return confirmedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

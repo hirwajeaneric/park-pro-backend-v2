@@ -16,7 +16,7 @@ public class CreateDonationRequestDto {
     private BigDecimal amount;
 
     @Size(max = 500, message = "Motive for donation must be 500 characters or less")
-    private String motiveForDonation; // Optional field
+    private String motiveForDonation;
 
     // Getters and Setters
     public UUID getParkId() { return parkId; }

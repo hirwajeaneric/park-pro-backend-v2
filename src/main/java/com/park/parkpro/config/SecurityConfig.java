@@ -19,11 +19,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    private static final Logger LOGGER = Logger.getLogger(SecurityConfig.class.getName());
     private final JwtFilter jwtFilter;
 
     public SecurityConfig(JwtFilter jwtFilter) {
@@ -32,6 +33,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        LOGGER.info("Configuring security filter chain");
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -47,15 +49,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/debug/auth").authenticated()
                         .requestMatchers("/api/parks/{parkId}/budgets").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
-                        .requestMatchers(HttpMethod.GET,"/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
-                        .requestMatchers(HttpMethod.PATCH,"/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers(HttpMethod.GET, "/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/budgets/{budgetId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/approve").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/reject").hasRole("GOVERNMENT_OFFICER")
-                        .requestMatchers(HttpMethod.POST,"/api/budgets/{budgetId}/income-streams").hasRole("FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.GET,"/api/budgets/{budgetId}/income-streams").hasAnyRole("FINANCE_OFFICE", "GOVERNMENT_OFFICER")
-                        .requestMatchers(HttpMethod.GET,"/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.PATCH,"/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.DELETE,"/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/income-streams").hasRole("FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/budgets/{budgetId}/income-streams").hasAnyRole("FINANCE_OFFICE", "GOVERNMENT_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers("/api/budgets/by-fiscal-year/{fiscalYear}").hasRole("GOVERNMENT_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "PARK_MANAGER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER")
@@ -69,8 +71,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/budgets/{budgetId}/expenses/my-submissions").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER")
                         .requestMatchers("/api/budgets/{budgetId}/categories/{categoryId}/expenses").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR", "PARK_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/withdraw-requests").hasAnyRole("ADMIN", "PARK_MANAGER")
-                        .requestMatchers(HttpMethod.GET,"/api/budgets/withdraw-requests/{withdrawRequestId}/approve").hasAnyRole("ADMIN", "FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.POST,"/api/budgets/withdraw-requests/{withdrawRequestId}/reject").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/budgets/withdraw-requests/{withdrawRequestId}/approve").hasAnyRole("ADMIN", "FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.POST, "/api/budgets/withdraw-requests/{withdrawRequestId}/reject").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers("/api/budgets/{budgetId}/withdraw-requests").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/withdraw-requests/my-submissions").hasAnyRole("ADMIN", "PARK_MANAGER")
                         .requestMatchers("/api/withdraw-requests/{withdrawRequestId}").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR", "PARK_MANAGER")
@@ -85,19 +87,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/parks/{parkId}/activities").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/activities/{activityId}").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.DELETE, "/api/activities/{activityId}").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
-                        .requestMatchers(HttpMethod.GET,"/api/parks/{parkId}/activities", "/api/activities/{activityId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/parks/{parkId}/activities", "/api/activities/{activityId}").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/bookings").hasRole("VISITOR")
                         .requestMatchers("/api/bookings/my").hasRole("VISITOR")
-                        .requestMatchers("/api/bookings/{bookingId}/confirm").hasAnyRole("PARK_MANAGER")
-                        .requestMatchers("/api/bookings/{bookingId}/cancel").hasAnyRole("PARK_MANAGER", "VISITOR")
-                        .requestMatchers("/api/parks/{parkId}/bookings").hasAnyRole("PARK_MANAGER", "FINANCE_OFFICER")
+                        .requestMatchers("/api/bookings/{bookingId}/cancel").hasAnyRole("PARK_MANAGER", "FINANCE_OFFICER", "VISITOR")
+                        .requestMatchers("/api/parks/{parkId}/bookings").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER", "AUDITOR")
                         .requestMatchers("/api/bookings/{bookingId}").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/donations").hasRole("VISITOR")
                         .requestMatchers("/api/donations/my").hasRole("VISITOR")
-                        .requestMatchers("/api/donations/{donationId}/confirm").hasAnyRole("PARK_MANAGER", "ADMIN")
+                        .requestMatchers("/api/donations/{donationId}/confirm").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER")
                         .requestMatchers("/api/donations/{donationId}/cancel").hasAnyRole("VISITOR", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers("/api/parks/{parkId}/donations").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER", "AUDITOR")
-                        .requestMatchers("/api/donations/{donationId}").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/donations/{donationId}").authenticated()
                         .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/opportunities").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunities/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")

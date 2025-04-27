@@ -40,7 +40,10 @@ public class Donation {
     private String currency = "XAF";
 
     @Column(name = "motive_for_donation")
-    private String motiveForDonation; // New field
+    private String motiveForDonation;
+
+    @Column(name = "fiscal_year", nullable = false)
+    private Integer fiscalYear;
 
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;

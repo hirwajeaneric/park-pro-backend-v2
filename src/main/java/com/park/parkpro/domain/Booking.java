@@ -47,6 +47,12 @@ public class Booking {
     @Column(name = "currency", nullable = false)
     private String currency = "XAF";
 
+    @Column(name = "stripe_payment_intent_id")
+    private String stripePaymentIntentId;
+
+    @Column(name = "stripe_payment_status")
+    private String stripePaymentStatus;
+
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 

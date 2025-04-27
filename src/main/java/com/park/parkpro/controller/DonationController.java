@@ -1,4 +1,3 @@
-// src/main/java/com/park/parkpro/controller/DonationController.java
 package com.park.parkpro.controller;
 
 import com.park.parkpro.domain.Donation;
@@ -9,16 +8,20 @@ import com.park.parkpro.service.DonationService;
 import com.stripe.exception.StripeException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api")
 public class DonationController {
+    private static final Logger LOGGER = Logger.getLogger(DonationController.class.getName());
     private final DonationService donationService;
 
     public DonationController(DonationService donationService) {
@@ -34,21 +37,15 @@ public class DonationController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        Donation donation = donationService.createDonation(request.getParkId(), request.getAmount().toString(), paymentMethodId, request.getMotiveForDonation(), token);
+        Donation donation = donationService.createDonation(
+                request.getParkId(),
+                request.getAmount().toString(),
+                request.getMotiveForDonation(),
+                paymentMethodId,
+                token
+        );
         return ResponseEntity.created(URI.create("/api/donations/" + donation.getId()))
                 .body(mapToDonationDto(donation));
-    }
-
-    @PostMapping("/donations/{donationId}/confirm")
-    public ResponseEntity<DonationResponseDto> confirmDonation(
-            @PathVariable UUID donationId,
-            @RequestHeader("Authorization") String authHeader) throws StripeException {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        Donation donation = donationService.confirmDonation(donationId, token);
-        return ResponseEntity.ok(mapToDonationDto(donation));
     }
 
     @PostMapping("/donations/{donationId}/cancel")
@@ -88,7 +85,12 @@ public class DonationController {
 
     @GetMapping("/donations/{donationId}")
     public ResponseEntity<DonationResponseDto> getDonationById(@PathVariable UUID donationId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        LOGGER.info("Fetching donation ID: " + donationId + ", User: " +
+                (authentication != null ? authentication.getName() : "anonymous") +
+                ", Roles: " + (authentication != null ? authentication.getAuthorities() : "none"));
         Donation donation = donationService.getDonationById(donationId);
+        LOGGER.info("Found donation: " + donation.getId() + ", Amount: " + donation.getAmount());
         return ResponseEntity.ok(mapToDonationDto(donation));
     }
 
@@ -96,7 +98,7 @@ public class DonationController {
         return new DonationResponseDto(
                 donation.getId(), donation.getDonor().getId(), donation.getPark().getId(),
                 donation.getAmount(), donation.getStatus(), donation.getPaymentReference(),
-                donation.getCurrency(), donation.getMotiveForDonation(), // Include new field
+                donation.getCurrency(), donation.getMotiveForDonation(), donation.getFiscalYear(),
                 donation.getConfirmedAt(), donation.getCreatedAt(), donation.getUpdatedAt()
         );
     }

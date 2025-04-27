@@ -14,10 +14,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api")
 public class BookingController {
+    private static final Logger LOGGER = Logger.getLogger(BookingController.class.getName());
     private final BookingService bookingService;
 
     public BookingController(BookingService bookingService) {
@@ -27,28 +29,17 @@ public class BookingController {
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody CreateBookingRequestDto request,
-            @RequestParam String paymentMethodId, // Stripe payment method ID (e.g., pm_xxx)
+            @RequestParam String paymentMethodId,
             @RequestHeader("Authorization") String authHeader) throws StripeException {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
+        LOGGER.info("Creating booking for activityId: " + request.getActivityId());
         Booking booking = bookingService.createBooking(request.getActivityId(), request.getVisitDate(),
                 paymentMethodId, token);
         return ResponseEntity.created(URI.create("/api/bookings/" + booking.getId()))
                 .body(mapToBookingDto(booking));
-    }
-
-    @PostMapping("/bookings/{bookingId}/confirm")
-    public ResponseEntity<BookingResponseDto> confirmBooking(
-            @PathVariable UUID bookingId,
-            @RequestHeader("Authorization") String authHeader) throws StripeException {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        Booking booking = bookingService.confirmBooking(bookingId, token);
-        return ResponseEntity.ok(mapToBookingDto(booking));
     }
 
     @PostMapping("/bookings/{bookingId}/cancel")
@@ -59,6 +50,7 @@ public class BookingController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
+        LOGGER.info("Cancelling booking: " + bookingId);
         Booking booking = bookingService.cancelBooking(bookingId, token);
         return ResponseEntity.ok(mapToBookingDto(booking));
     }
@@ -70,6 +62,7 @@ public class BookingController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
+        LOGGER.info("Fetching bookings for visitor");
         List<Booking> bookings = bookingService.getBookingsByVisitor(token);
         return ResponseEntity.ok(bookings.stream().map(this::mapToBookingDto).collect(Collectors.toList()));
     }
@@ -82,12 +75,14 @@ public class BookingController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
+        LOGGER.info("Fetching bookings for parkId: " + parkId);
         List<Booking> bookings = bookingService.getBookingsByPark(parkId, token);
         return ResponseEntity.ok(bookings.stream().map(this::mapToBookingDto).collect(Collectors.toList()));
     }
 
     @GetMapping("/bookings/{bookingId}")
     public ResponseEntity<BookingResponseDto> getBookingById(@PathVariable UUID bookingId) {
+        LOGGER.info("Fetching booking: " + bookingId);
         Booking booking = bookingService.getBookingById(bookingId);
         return ResponseEntity.ok(mapToBookingDto(booking));
     }

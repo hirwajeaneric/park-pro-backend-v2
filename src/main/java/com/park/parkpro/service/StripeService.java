@@ -9,9 +9,11 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @Service
 public class StripeService {
+    private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
 
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
@@ -19,27 +21,45 @@ public class StripeService {
     @PostConstruct
     public void init() {
         Stripe.apiKey = stripeSecretKey;
+        LOGGER.info("Stripe API key initialized");
     }
 
     public PaymentIntent createPaymentIntent(Long amountInCents, String currency, String description, String metadataBookingId) throws StripeException {
-        Map<String, Object> params = new HashMap<>();
-        params.put("amount", amountInCents); // Amount in cents (e.g., 5000 for 50.00)
-        params.put("currency", currency);    // e.g., "XAF"
-        params.put("description", description);
-        params.put("metadata", Map.of("booking_id", metadataBookingId)); // Link to booking
+        LOGGER.info("Creating PaymentIntent: amount=" + amountInCents + ", currency=" + currency + ", description=" + description);
 
-        return PaymentIntent.create(params);
+        Map<String, Object> params = new HashMap<>();
+        params.put("amount", amountInCents);
+        params.put("currency", currency);
+        params.put("description", description);
+        params.put("metadata", Map.of("booking_id", metadataBookingId));
+        params.put("payment_method_types", new String[]{"card"}); // Restrict to card payments
+
+        try {
+            PaymentIntent paymentIntent = PaymentIntent.create(params);
+            LOGGER.info("Created PaymentIntent: ID=" + paymentIntent.getId() + ", Status=" + paymentIntent.getStatus());
+            return paymentIntent;
+        } catch (StripeException e) {
+            LOGGER.severe("Stripe error: " + e.getMessage() + ", Request ID: " + e.getRequestId());
+            throw e;
+        }
     }
 
     public PaymentIntent confirmPaymentIntent(String paymentIntentId) throws StripeException {
+        LOGGER.info("Confirming PaymentIntent: ID=" + paymentIntentId);
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
         if ("requires_confirmation".equals(paymentIntent.getStatus())) {
-            return paymentIntent.confirm();
+            paymentIntent = paymentIntent.confirm();
+            LOGGER.info("Confirmed PaymentIntent: ID=" + paymentIntent.getId() + ", Status=" + paymentIntent.getStatus());
+        } else {
+            LOGGER.info("PaymentIntent already in state: " + paymentIntent.getStatus());
         }
-        return paymentIntent; // Already confirmed or in another state
+        return paymentIntent;
     }
 
     public PaymentIntent retrievePaymentIntent(String paymentIntentId) throws StripeException {
-        return PaymentIntent.retrieve(paymentIntentId);
+        LOGGER.info("Retrieving PaymentIntent: ID=" + paymentIntentId);
+        PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+        LOGGER.info("Retrieved PaymentIntent: ID=" + paymentIntent.getId() + ", Status=" + paymentIntent.getStatus());
+        return paymentIntent;
     }
 }
