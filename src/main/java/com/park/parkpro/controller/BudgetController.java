@@ -349,53 +349,53 @@ public class BudgetController {
         return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
     }
 
-    // Funding Request Endpoints
-    @PostMapping("/parks/{parkId}/funding-requests")
-    public ResponseEntity<FundingRequestResponseDto> createFundingRequest(
-            @PathVariable UUID parkId,
-            @Valid @RequestBody CreateFundingRequestDto request,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        FundingRequest fundingRequest = fundingRequestService.createFundingRequest(
-                parkId, request.getRequestedAmount(), request.getRequestType(), request.getReason(),
-                request.getBudgetId(), token);
-        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
-    }
-
-    @PostMapping("/funding-requests/{fundingRequestId}/approve")
-    public ResponseEntity<FundingRequestResponseDto> approveFundingRequest(
-            @PathVariable UUID fundingRequestId,
-            @RequestParam BigDecimal approvedAmount,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        FundingRequest fundingRequest = fundingRequestService.approveFundingRequest(fundingRequestId, approvedAmount, token);
-        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
-    }
-
-    @PostMapping("/funding-requests/{fundingRequestId}/reject")
-    public ResponseEntity<FundingRequestResponseDto> rejectFundingRequest(
-            @PathVariable UUID fundingRequestId,
-            @RequestParam(required = false) String rejectionReason,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        FundingRequest fundingRequest = fundingRequestService.rejectFundingRequest(fundingRequestId, rejectionReason, token);
-        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
-    }
-
-    @GetMapping("/parks/{parkId}/funding-requests")
-    public ResponseEntity<List<FundingRequestResponseDto>> getFundingRequestsByPark(@PathVariable UUID parkId) {
-        List<FundingRequest> requests = fundingRequestService.getFundingRequestsByPark(parkId);
-        return ResponseEntity.ok(requests.stream().map(this::mapToFundingRequestDto).collect(Collectors.toList()));
-    }
+//    // Funding Request Endpoints
+//    @PostMapping("/parks/{parkId}/funding-requests")
+//    public ResponseEntity<FundingRequestResponseDto> createFundingRequest(
+//            @PathVariable UUID parkId,
+//            @Valid @RequestBody CreateFundingRequestDto request,
+//            @RequestHeader("Authorization") String authHeader) {
+//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//            throw new UnauthorizedException("Invalid or missing Authorization header");
+//        }
+//        String token = authHeader.substring(7);
+//        FundingRequest fundingRequest = fundingRequestService.createFundingRequest(
+//                parkId, request.getRequestedAmount(), request.getRequestType(), request.getReason(),
+//                request.getBudgetId(), token);
+//        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+//    }
+//
+//    @PostMapping("/funding-requests/{fundingRequestId}/approve")
+//    public ResponseEntity<FundingRequestResponseDto> approveFundingRequest(
+//            @PathVariable UUID fundingRequestId,
+//            @RequestParam BigDecimal approvedAmount,
+//            @RequestHeader("Authorization") String authHeader) {
+//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//            throw new UnauthorizedException("Invalid or missing Authorization header");
+//        }
+//        String token = authHeader.substring(7);
+//        FundingRequest fundingRequest = fundingRequestService.approveFundingRequest(fundingRequestId, approvedAmount, token);
+//        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+//    }
+//
+//    @PostMapping("/funding-requests/{fundingRequestId}/reject")
+//    public ResponseEntity<FundingRequestResponseDto> rejectFundingRequest(
+//            @PathVariable UUID fundingRequestId,
+//            @RequestParam(required = false) String rejectionReason,
+//            @RequestHeader("Authorization") String authHeader) {
+//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//            throw new UnauthorizedException("Invalid or missing Authorization header");
+//        }
+//        String token = authHeader.substring(7);
+//        FundingRequest fundingRequest = fundingRequestService.rejectFundingRequest(fundingRequestId, rejectionReason, token);
+//        return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
+//    }
+//
+//    @GetMapping("/parks/{parkId}/funding-requests")
+//    public ResponseEntity<List<FundingRequestResponseDto>> getFundingRequestsByPark(@PathVariable UUID parkId) {
+//        List<FundingRequest> requests = fundingRequestService.getFundingRequestsByPark(parkId);
+//        return ResponseEntity.ok(requests.stream().map(this::mapToFundingRequestDto).collect(Collectors.toList()));
+//    }
 
     // Mapping Methods
     private BudgetResponseDto mapToDto(Budget budget) {
@@ -443,7 +443,7 @@ public class BudgetController {
 
     private FundingRequestResponseDto mapToFundingRequestDto(FundingRequest request) {
         return new FundingRequestResponseDto(
-                request.getId(), request.getPark().getId(), request.getBudget().getId(),
+                request.getId(), request.getPark().getId(), request.getPark().getName(), request.getBudget().getId(),
                 request.getRequestedAmount(), request.getApprovedAmount(), request.getRequestType(),
                 request.getReason(), request.getRequester().getId(),
                 request.getApprover() != null ? request.getApprover().getId() : null,

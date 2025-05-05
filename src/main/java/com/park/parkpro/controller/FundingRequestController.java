@@ -128,6 +128,21 @@ public class FundingRequestController {
                 .collect(Collectors.toList()));
     }
 
+    @GetMapping("/budgets/{budgetId}/funding-requests")
+    public ResponseEntity<List<FundingRequestResponseDto>> getFundingRequestsByBudget(
+            @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        LOGGER.info("Fetching funding requests for budgetId: " + budgetId);
+        List<FundingRequest> fundingRequests = fundingRequestService.getFundingRequestsByBudget(budgetId, token);
+        return ResponseEntity.ok(fundingRequests.stream()
+                .map(this::mapToFundingRequestDto)
+                .collect(Collectors.toList()));
+    }
+
     @GetMapping("/funding-requests")
     public ResponseEntity<List<FundingRequestResponseDto>> getAllFundingRequests(
             @RequestParam(required = false) Integer fiscalYear,
@@ -143,10 +158,26 @@ public class FundingRequestController {
                 .collect(Collectors.toList()));
     }
 
+    @GetMapping("/funding-requests/fiscal-year/{fiscalYear}")
+    public ResponseEntity<List<FundingRequestResponseDto>> getFundingRequestsByFiscalYear(
+            @PathVariable int fiscalYear,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        LOGGER.info("Fetching funding requests for fiscalYear: " + fiscalYear);
+        List<FundingRequest> fundingRequests = fundingRequestService.getFundingRequestsByFiscalYear(fiscalYear, token);
+        return ResponseEntity.ok(fundingRequests.stream()
+                .map(this::mapToFundingRequestDto)
+                .collect(Collectors.toList()));
+    }
+
     private FundingRequestResponseDto mapToFundingRequestDto(FundingRequest fundingRequest) {
         return new FundingRequestResponseDto(
                 fundingRequest.getId(),
                 fundingRequest.getPark().getId(),
+                fundingRequest.getPark().getName(),
                 fundingRequest.getBudget().getId(),
                 fundingRequest.getRequestedAmount(),
                 fundingRequest.getApprovedAmount(),

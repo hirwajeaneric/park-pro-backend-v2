@@ -116,6 +116,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/funding-requests/{fundingRequestId}").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/funding-requests/{fundingRequestId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.DELETE, "/api/funding-requests/{fundingRequestId}").hasRole("FINANCE_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/funding-requests/fiscal-year/{fiscalYear}").hasAnyRole("ADMIN", "GOVERNMENT_OFFICER", "AUDITOR")
+                        .requestMatchers(HttpMethod.GET, "/api/budgets/{budgetId}/funding-requests").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers(HttpMethod.GET, "/api/funding-requests").hasAnyRole("ADMIN", "GOVERNMENT_OFFICER", "AUDITOR")
                         .anyRequest().authenticated()
                 )

@@ -13,4 +13,9 @@ public interface FundingRequestRepository extends JpaRepository<FundingRequest, 
 
     @Query("SELECT fr FROM FundingRequest fr JOIN fr.budget b WHERE fr.park.id = :parkId AND b.fiscalYear = :fiscalYear")
     List<FundingRequest> findByParkIdAndFiscalYear(@Param("parkId") UUID parkId, @Param("fiscalYear") int fiscalYear);
+
+    List<FundingRequest> findByBudgetId(UUID budgetId);
+
+    @Query("SELECT fr FROM FundingRequest fr JOIN fr.budget b WHERE b.fiscalYear = :fiscalYear")
+    List<FundingRequest> findByFiscalYear(@Param("fiscalYear") int fiscalYear);
 }

@@ -214,6 +214,21 @@ public class FundingRequestService {
         LOGGER.info("Deleted funding request: ID=" + fundingRequestId);
     }
 
+    public List<FundingRequest> getFundingRequestsByFiscalYear(int fiscalYear, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        if (!List.of("ADMIN", "GOVERNMENT_OFFICER", "AUDITOR").contains(user.getRole())) {
+            throw new ForbiddenException("Only ADMIN, GOVERNMENT_OFFICER, or AUDITOR can view funding requests by fiscal year");
+        }
+        if (fiscalYear < 2000 || fiscalYear > LocalDate.now().getYear() + 1) {
+            throw new BadRequestException("Invalid fiscal year: " + fiscalYear);
+        }
+        List<FundingRequest> requests = fundingRequestRepository.findByFiscalYear(fiscalYear);
+        LOGGER.info("Retrieved " + requests.size() + " funding requests for fiscalYear: " + fiscalYear);
+        return requests;
+    }
+
     public List<FundingRequest> getFundingRequestsByPark(UUID parkId, Integer fiscalYear, String token) {
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
@@ -249,6 +264,23 @@ public class FundingRequestService {
             requests = fundingRequestRepository.findAll();
         }
         LOGGER.info("Retrieved " + requests.size() + " funding requests" + (fiscalYear != null ? " for fiscalYear: " + fiscalYear : ""));
+        return requests;
+    }
+
+    public List<FundingRequest> getFundingRequestsByBudget(UUID budgetId, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        if (!List.of("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "AUDITOR").contains(user.getRole())) {
+            throw new ForbiddenException("Only ADMIN, FINANCE_OFFICER, GOVERNMENT_OFFICER, or AUDITOR can view funding requests");
+        }
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
+        if ("FINANCE_OFFICER".equals(user.getRole()) && !budget.getPark().getId().equals(user.getPark().getId())) {
+            throw new ForbiddenException("FINANCE_OFFICER can only view funding requests for their assigned park");
+        }
+        List<FundingRequest> requests = fundingRequestRepository.findByBudgetId(budgetId);
+        LOGGER.info("Retrieved " + requests.size() + " funding requests for budgetId: " + budgetId);
         return requests;
     }
 }

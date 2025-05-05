@@ -7,6 +7,7 @@ import java.util.UUID;
 public class FundingRequestResponseDto {
     private UUID id;
     private UUID parkId;
+    private String parkName;
     private UUID budgetId;
     private BigDecimal requestedAmount;
     private BigDecimal approvedAmount;
@@ -21,13 +22,14 @@ public class FundingRequestResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public FundingRequestResponseDto(UUID id, UUID parkId, UUID budgetId, BigDecimal requestedAmount,
+    public FundingRequestResponseDto(UUID id, UUID parkId, String parkName, UUID budgetId, BigDecimal requestedAmount,
                                      BigDecimal approvedAmount, String requestType, String reason,
                                      UUID requesterId, UUID approverId, String status, String rejectionReason,
                                      LocalDateTime approvedAt, String currency, LocalDateTime createdAt,
                                      LocalDateTime updatedAt) {
         this.id = id;
         this.parkId = parkId;
+        this.parkName = parkName;
         this.budgetId = budgetId;
         this.requestedAmount = requestedAmount;
         this.approvedAmount = approvedAmount;
@@ -46,6 +48,7 @@ public class FundingRequestResponseDto {
     // Getters
     public UUID getId() { return id; }
     public UUID getParkId() { return parkId; }
+    public String getParkName() { return parkName; }
     public UUID getBudgetId() { return budgetId; }
     public BigDecimal getRequestedAmount() { return requestedAmount; }
     public BigDecimal getApprovedAmount() { return approvedAmount; }
