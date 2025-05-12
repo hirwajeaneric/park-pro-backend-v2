@@ -7,6 +7,7 @@ import java.util.UUID;
 public class BudgetResponseDto {
     private UUID id;
     private UUID parkId;
+    private String parkName;
     private Integer fiscalYear;
     private BigDecimal totalAmount;
     private BigDecimal balance;
@@ -17,11 +18,12 @@ public class BudgetResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public BudgetResponseDto(UUID id, UUID parkId, Integer fiscalYear, BigDecimal totalAmount, BigDecimal balance,
+    public BudgetResponseDto(UUID id, UUID parkId, String parkName, Integer fiscalYear, BigDecimal totalAmount, BigDecimal balance,
                              String status, UUID createdBy, UUID approvedBy, LocalDateTime approvedAt,
                              LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.parkId = parkId;
+        this.parkName = parkName;
         this.fiscalYear = fiscalYear;
         this.totalAmount = totalAmount;
         this.balance = balance;
@@ -36,6 +38,7 @@ public class BudgetResponseDto {
     // Getters
     public UUID getId() { return id; }
     public UUID getParkId() { return parkId; }
+    public String getParkName() { return parkName; }
     public Integer getFiscalYear() { return fiscalYear; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public BigDecimal getBalance() { return balance; }

@@ -23,6 +23,7 @@ public class WithdrawRequestResponseDto {
     private LocalDateTime approvedAt;
     private String rejectionReason;
     private UUID parkId;
+    private String parkName;
     private String currency;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -30,7 +31,7 @@ public class WithdrawRequestResponseDto {
     public WithdrawRequestResponseDto(UUID id, BigDecimal amount, String reason, String description,
                                       UUID requesterId, UUID approverId, UUID budgetCategoryId, String budgetCategoryName,
                                       UUID budgetId, String receiptUrl, WithdrawRequestStatus status, AuditStatus auditStatus,
-                                      LocalDateTime approvedAt, String rejectionReason, UUID parkId, String currency,
+                                      LocalDateTime approvedAt, String rejectionReason, UUID parkId, String parkName, String currency,
                                       LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.amount = amount;
@@ -47,6 +48,7 @@ public class WithdrawRequestResponseDto {
         this.approvedAt = approvedAt;
         this.rejectionReason = rejectionReason;
         this.parkId = parkId;
+        this.parkName = parkName;
         this.currency = currency;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -68,6 +70,7 @@ public class WithdrawRequestResponseDto {
     public LocalDateTime getApprovedAt() { return approvedAt; }
     public String getRejectionReason() { return rejectionReason; }
     public UUID getParkId() { return parkId; }
+    public String getParkName() { return parkName; }
     public String getCurrency() { return currency; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

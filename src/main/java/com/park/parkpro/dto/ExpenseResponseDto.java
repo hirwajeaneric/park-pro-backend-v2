@@ -15,6 +15,7 @@ public class ExpenseResponseDto {
     private UUID budgetCategoryId;
     private String budgetCategoryName;
     private UUID parkId;
+    private String parkName;
     private UUID createdBy;
     private AuditStatus auditStatus;
     private String receiptUrl;
@@ -23,7 +24,7 @@ public class ExpenseResponseDto {
     private LocalDateTime updatedAt;
 
     public ExpenseResponseDto(UUID id, UUID budgetId, BigDecimal amount, String description,
-                              UUID budgetCategoryId, String budgetCategoryName, UUID parkId,
+                              UUID budgetCategoryId, String budgetCategoryName, UUID parkId, String parkName,
                               UUID createdBy, AuditStatus auditStatus, String receiptUrl,
                               String currency, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
@@ -33,6 +34,7 @@ public class ExpenseResponseDto {
         this.budgetCategoryId = budgetCategoryId;
         this.budgetCategoryName = budgetCategoryName;
         this.parkId = parkId;
+        this.parkName = parkName;
         this.createdBy = createdBy;
         this.auditStatus = auditStatus;
         this.receiptUrl = receiptUrl;
@@ -49,6 +51,7 @@ public class ExpenseResponseDto {
     public UUID getBudgetCategoryId() { return budgetCategoryId; }
     public String getBudgetCategoryName() { return budgetCategoryName; }
     public UUID getParkId() { return parkId; }
+    public String getParkName() { return parkName; }
     public UUID getCreatedBy() { return createdBy; }
     public AuditStatus getAuditStatus() { return auditStatus; }
     public String getReceiptUrl() { return receiptUrl; }

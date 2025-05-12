@@ -144,8 +144,8 @@ public class BudgetService {
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!List.of("GOVERNMENT_OFFICER", "ADMIN", "FINANCE_OFFICER").contains(user.getRole())) {
-            throw new ForbiddenException("Only GOVERNMENT_OFFICER, ADMIN, or FINANCE_OFFICER can view budgets by fiscal year");
+        if (!List.of("GOVERNMENT_OFFICER", "AUDITOR").contains(user.getRole())) {
+            throw new ForbiddenException("Only GOVERNMENT OFFICER AND AUDITOR can view budgets by fiscal year");
         }
 
         List<Park> allParks = parkRepository.findAll();

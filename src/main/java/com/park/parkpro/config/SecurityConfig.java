@@ -58,7 +58,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.DELETE, "/api/income-streams/{incomeStreamId}").hasRole("FINANCE_OFFICER")
-                        .requestMatchers("/api/budgets/by-fiscal-year/{fiscalYear}").hasRole("GOVERNMENT_OFFICER")
+                        .requestMatchers("/api/budgets/by-fiscal-year/{fiscalYear}").hasAnyRole("GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers("/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER", "GOVERNMENT_OFFICER", "PARK_MANAGER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/budgets/{budgetId}/categories").hasAnyRole("ADMIN", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/budgets/{budgetId}/categories/{categoryId}").hasAnyRole("ADMIN", "FINANCE_OFFICER")

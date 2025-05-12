@@ -400,7 +400,7 @@ public class BudgetController {
     // Mapping Methods
     private BudgetResponseDto mapToDto(Budget budget) {
         return new BudgetResponseDto(
-                budget.getId(), budget.getPark().getId(), budget.getFiscalYear(), budget.getTotalAmount(),
+                budget.getId(), budget.getPark().getId(), budget.getPark().getName(), budget.getFiscalYear(), budget.getTotalAmount(),
                 budget.getBalance(), budget.getStatus(), budget.getCreatedBy().getId(),
                 budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
                 budget.getApprovedAt(), budget.getCreatedAt(), budget.getUpdatedAt());
@@ -426,7 +426,7 @@ public class BudgetController {
         return new ExpenseResponseDto(
                 expense.getId(), expense.getBudget().getId(), expense.getAmount(), expense.getDescription(),
                 expense.getBudgetCategory().getId(), expense.getBudgetCategory().getName(),
-                expense.getPark().getId(), expense.getCreatedBy() != null ? expense.getCreatedBy().getId() : null,
+                expense.getPark().getId(), expense.getPark().getName(), expense.getCreatedBy() != null ? expense.getCreatedBy().getId() : null,
                 expense.getAuditStatus(), expense.getReceiptUrl(), expense.getCurrency(),
                 expense.getCreatedAt(), expense.getUpdatedAt());
     }
@@ -437,7 +437,7 @@ public class BudgetController {
                 request.getRequester().getId(), request.getApprover() != null ? request.getApprover().getId() : null,
                 request.getBudgetCategory().getId(), request.getBudgetCategory().getName(),
                 request.getBudget().getId(), request.getReceiptUrl(), request.getStatus(), request.getAuditStatus(),
-                request.getApprovedAt(), request.getRejectionReason(), request.getPark().getId(), request.getCurrency(),
+                request.getApprovedAt(), request.getRejectionReason(), request.getPark().getId(), request.getPark().getName(), request.getCurrency(),
                 request.getCreatedAt(), request.getUpdatedAt());
     }
 
