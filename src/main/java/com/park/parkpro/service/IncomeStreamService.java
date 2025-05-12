@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -152,6 +153,34 @@ public class IncomeStreamService {
         IncomeStream incomeStream = incomeStreamRepository.findById(incomeStreamId)
                 .orElseThrow(() -> new NotFoundException("Income stream not found with ID: " + incomeStreamId));
         return mapToDto(incomeStream);
+    }
+
+    public List<IncomeStreamResponseDto> getIncomeStreamsByBudgetAndFiscalYear(UUID budgetId, int fiscalYear, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+
+        if (!List.of("FINANCE_OFFICER", "GOVERNMENT_OFFICER").contains(user.getRole())) {
+            throw new ForbiddenException("Only FINANCE_OFFICER or GOVERNMENT_OFFICER can view income streams");
+        }
+
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
+
+        if (fiscalYear < 2000 || fiscalYear > LocalDate.now().getYear() + 1) {
+            throw new BadRequestException("Invalid fiscal year: " + fiscalYear);
+        }
+
+        if (budget.getFiscalYear() != fiscalYear) {
+            throw new BadRequestException("Budget fiscal year does not match the requested fiscal year");
+        }
+
+        if ("FINANCE_OFFICER".equals(user.getRole()) && !budget.getPark().getId().equals(user.getPark().getId())) {
+            throw new ForbiddenException("FINANCE_OFFICER can only view income streams for their assigned park");
+        }
+
+        List<IncomeStream> incomeStreams = incomeStreamRepository.findByBudgetIdAndFiscalYear(budgetId, fiscalYear);
+        return incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     public List<IncomeStreamResponseDto> getIncomeStreamsByBudget(UUID budgetId) {
