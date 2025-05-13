@@ -3,6 +3,7 @@ package com.park.parkpro.controller;
 import com.park.parkpro.domain.Donation;
 import com.park.parkpro.dto.CreateDonationRequestDto;
 import com.park.parkpro.dto.DonationResponseDto;
+import com.park.parkpro.dto.OutstandingDonorResponseDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.DonationService;
 import com.stripe.exception.StripeException;
@@ -71,6 +72,27 @@ public class DonationController {
         return ResponseEntity.ok(donations.stream().map(this::mapToDonationDto).collect(Collectors.toList()));
     }
 
+    @GetMapping("/parks/{parkId}/donations/fiscal-year/{fiscalYear}")
+    public ResponseEntity<List<DonationResponseDto>> getDonationsByParkAndFiscalYear(
+            @PathVariable UUID parkId,
+            @PathVariable int fiscalYear,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        String token = authHeader.substring(7);
+        LOGGER.info("Fetching donations for parkId: " + parkId + ", fiscalYear: " + fiscalYear);
+        List<Donation> donations = donationService.getDonationsByParkAndFiscalYear(parkId, fiscalYear, token);
+        return ResponseEntity.ok(donations.stream().map(this::mapToDonationDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/parks/{parkId}/top-donors")
+    public ResponseEntity<List<OutstandingDonorResponseDto>> getTopDonorsByPark(@PathVariable UUID parkId) {
+        LOGGER.info("Fetching top donors for parkId: " + parkId);
+        List<OutstandingDonorResponseDto> donors = donationService.getTopDonorsByPark(parkId);
+        return ResponseEntity.ok(donors);
+    }
+
     @GetMapping("/parks/{parkId}/donations")
     public ResponseEntity<List<DonationResponseDto>> getDonationsByPark(
             @PathVariable UUID parkId,
@@ -96,10 +118,19 @@ public class DonationController {
 
     private DonationResponseDto mapToDonationDto(Donation donation) {
         return new DonationResponseDto(
-                donation.getId(), donation.getDonor().getId(), donation.getPark().getId(),
-                donation.getAmount(), donation.getStatus(), donation.getPaymentReference(),
-                donation.getCurrency(), donation.getMotiveForDonation(), donation.getFiscalYear(),
-                donation.getConfirmedAt(), donation.getCreatedAt(), donation.getUpdatedAt()
+                donation.getId(),
+                donation.getDonor().getId(),
+                donation.getDonor().getFirstName()+" "+donation.getDonor().getLastName(),
+                donation.getPark().getId(),
+                donation.getAmount(),
+                donation.getStatus(),
+                donation.getPaymentReference(),
+                donation.getCurrency(),
+                donation.getMotiveForDonation(),
+                donation.getFiscalYear(),
+                donation.getConfirmedAt(),
+                donation.getCreatedAt(),
+                donation.getUpdatedAt()
         );
     }
 }

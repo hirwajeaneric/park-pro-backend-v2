@@ -3,8 +3,10 @@ package com.park.parkpro.controller;
 import com.park.parkpro.domain.OpportunityApplication;
 import com.park.parkpro.dto.CreateOpportunityApplicationRequestDto;
 import com.park.parkpro.dto.OpportunityApplicationResponseDto;
+import com.park.parkpro.dto.UpdateOpportunityApplicationStatusRequestDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.OpportunityApplicationService;
+import com.park.parkpro.service.OpportunityService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +20,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/opportunity-applications")
 public class OpportunityApplicationController {
     private final OpportunityApplicationService applicationService;
+    private final OpportunityService opportunityService;
 
-    public OpportunityApplicationController(OpportunityApplicationService applicationService) {
+    public OpportunityApplicationController(OpportunityApplicationService applicationService, OpportunityService opportunityService) {
         this.applicationService = applicationService;
+        this.opportunityService = opportunityService;
     }
 
     @PostMapping
@@ -41,13 +45,14 @@ public class OpportunityApplicationController {
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<OpportunityApplicationResponseDto> updateApplicationStatus(
             @PathVariable UUID applicationId,
-            @RequestParam String status,
+            @Valid @RequestBody UpdateOpportunityApplicationStatusRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        OpportunityApplication application = applicationService.updateApplicationStatus(applicationId, status, token);
+        OpportunityApplication application = applicationService.updateApplicationStatus(
+                applicationId, request.getStatus(), request.getApprovalMessage(), request.getRejectionReason(), token);
         return ResponseEntity.ok(mapToApplicationDto(application));
     }
 
@@ -107,7 +112,8 @@ public class OpportunityApplicationController {
         return new OpportunityApplicationResponseDto(
                 application.getId(), application.getOpportunity().getId(), application.getFirstName(),
                 application.getLastName(), application.getEmail(), application.getApplicationLetterUrl(),
-                application.getStatus(), application.getCreatedAt(), application.getUpdatedAt()
+                application.getStatus(), application.getApprovalMessage(), application.getRejectionReason(),
+                application.getCreatedAt(), application.getUpdatedAt()
         );
     }
 }

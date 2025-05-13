@@ -3,6 +3,7 @@ package com.park.parkpro.service;
 import com.park.parkpro.domain.Donation;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
+import com.park.parkpro.dto.OutstandingDonorResponseDto;
 import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.BudgetRepository;
@@ -139,6 +140,36 @@ public class DonationService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         return donationRepository.findByParkId(parkId);
+    }
+
+    public List<Donation> getDonationsByParkAndFiscalYear(UUID parkId, int fiscalYear, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+
+        if (!List.of("FINANCE_OFFICER", "GOVERNMENT_OFFICER").contains(user.getRole())) {
+            throw new ForbiddenException("Only FINANCE_OFFICER or GOVERNMENT_OFFICER can view donations");
+        }
+
+        Park park = parkRepository.findById(parkId)
+                .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
+
+        if ("FINANCE_OFFICER".equals(user.getRole()) && !park.getId().equals(user.getPark().getId())) {
+            throw new ForbiddenException("FINANCE_OFFICER can only view donations for their assigned park");
+        }
+
+        if (fiscalYear < 2000 || fiscalYear > LocalDate.now().getYear() + 1) {
+            throw new IllegalArgumentException("Invalid fiscal year: " + fiscalYear);
+        }
+
+        return donationRepository.findByParkIdAndFiscalYear(parkId, fiscalYear);
+    }
+
+    public List<OutstandingDonorResponseDto> getTopDonorsByPark(UUID parkId) {
+        if (!parkRepository.existsById(parkId)) {
+            throw new NotFoundException("Park not found with ID: " + parkId);
+        }
+        return donationRepository.findTopDonorsByPark(parkId);
     }
 
     public Donation getDonationById(UUID donationId) {

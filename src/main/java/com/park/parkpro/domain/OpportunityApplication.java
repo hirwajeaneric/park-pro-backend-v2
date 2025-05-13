@@ -37,6 +37,12 @@ public class OpportunityApplication {
     @Column(name = "status", nullable = false, length = 20)
     private String status; // SUBMITTED, REVIEWED, ACCEPTED, REJECTED
 
+    @Column(name = "approval_message", length = 1000)
+    private String approvalMessage;
+
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

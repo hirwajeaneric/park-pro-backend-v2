@@ -11,11 +11,14 @@ public class OpportunityApplicationResponseDto {
     private String email;
     private String applicationLetterUrl;
     private String status;
+    private String approvalMessage;
+    private String rejectionReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public OpportunityApplicationResponseDto(UUID id, UUID opportunityId, String firstName, String lastName,
                                              String email, String applicationLetterUrl, String status,
+                                             String approvalMessage, String rejectionReason,
                                              LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.opportunityId = opportunityId;
@@ -24,6 +27,8 @@ public class OpportunityApplicationResponseDto {
         this.email = email;
         this.applicationLetterUrl = applicationLetterUrl;
         this.status = status;
+        this.approvalMessage = approvalMessage;
+        this.rejectionReason = rejectionReason;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -36,6 +41,8 @@ public class OpportunityApplicationResponseDto {
     public String getEmail() { return email; }
     public String getApplicationLetterUrl() { return applicationLetterUrl; }
     public String getStatus() { return status; }
+    public String getApprovalMessage() { return approvalMessage; }
+    public String getRejectionReason() { return rejectionReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

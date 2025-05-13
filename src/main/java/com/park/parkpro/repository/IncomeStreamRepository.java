@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface IncomeStreamRepository extends JpaRepository<IncomeStream, UUID> {
     List<IncomeStream> findByBudgetId(UUID budgetId);
     boolean existsByBudgetIdAndName(UUID budgetId, String name);
+    List<IncomeStream> findByParkAndFiscalYear(Park park, Integer fiscalYear);
     @Query("SELECT is FROM IncomeStream is WHERE is.budget.id = :budgetId AND is.fiscalYear = :fiscalYear")
     List<IncomeStream> findByBudgetIdAndFiscalYear(@Param("budgetId") UUID budgetId, @Param("fiscalYear") int fiscalYear);
 }

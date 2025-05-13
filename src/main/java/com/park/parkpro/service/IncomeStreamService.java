@@ -183,6 +183,26 @@ public class IncomeStreamService {
         return incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    public List<IncomeStreamResponseDto> getIncomeStreamByParkIdAndFiscalYear(UUID parkId, Integer fiscalYear, String token) {
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+
+        if (!List.of("FINANCE_OFFICER", "GOVERNMENT_OFFICER").contains(user.getRole())) {
+            throw new ForbiddenException("Only FINANCE_OFFICER or GOVERNMENT_OFFICER can view income streams");
+        }
+
+        Park park = parkRepository.findById(parkId)
+                .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
+
+        if ("FINANCE_OFFICER".equals(user.getRole()) && !park.getId().equals(user.getPark().getId())) {
+            throw new ForbiddenException("FINANCE_OFFICER can only view income streams for their assigned park");
+        }
+
+        List<IncomeStream> incomeStreams = incomeStreamRepository.findByParkAndFiscalYear(park, fiscalYear);
+        return incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
     public List<IncomeStreamResponseDto> getIncomeStreamsByBudget(UUID budgetId) {
         List<IncomeStream> incomeStreams = incomeStreamRepository.findByBudgetId(budgetId);
         return incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList());
