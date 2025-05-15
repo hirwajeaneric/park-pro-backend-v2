@@ -1,12 +1,14 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Budget;
+import com.park.parkpro.domain.BudgetCategory;
 import com.park.parkpro.domain.FundingRequest;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
+import com.park.parkpro.repository.BudgetCategoryRepository;
 import com.park.parkpro.repository.BudgetRepository;
 import com.park.parkpro.repository.FundingRequestRepository;
 import com.park.parkpro.repository.ParkRepository;
@@ -27,17 +29,20 @@ public class FundingRequestService {
     private static final Logger LOGGER = Logger.getLogger(FundingRequestService.class.getName());
     private final FundingRequestRepository fundingRequestRepository;
     private final BudgetRepository budgetRepository;
+    private final BudgetCategoryRepository budgetCategoryRepository;
     private final ParkRepository parkRepository;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
     public FundingRequestService(FundingRequestRepository fundingRequestRepository,
                                  BudgetRepository budgetRepository,
+                                 BudgetCategoryRepository budgetCategoryRepository,
                                  ParkRepository parkRepository,
                                  UserRepository userRepository,
                                  JwtUtil jwtUtil) {
         this.fundingRequestRepository = fundingRequestRepository;
         this.budgetRepository = budgetRepository;
+        this.budgetCategoryRepository = budgetCategoryRepository;
         this.parkRepository = parkRepository;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
@@ -45,7 +50,7 @@ public class FundingRequestService {
 
     @Transactional
     public FundingRequest createFundingRequest(UUID parkId, BigDecimal requestedAmount, String requestType,
-                                               String reason, UUID budgetId, String token) {
+                                               String reason, UUID budgetId, UUID budgetCategoryId, String token) {
         String email = jwtUtil.getEmailFromToken(token);
         User requester = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -65,6 +70,11 @@ public class FundingRequestService {
         if (!budget.getPark().getId().equals(parkId)) {
             throw new BadRequestException("Budget does not belong to the specified park");
         }
+        BudgetCategory budgetCategory = budgetCategoryRepository.findById(budgetCategoryId)
+                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + budgetCategoryId));
+        if (!budgetCategory.getBudget().getId().equals(budgetId)) {
+            throw new BadRequestException("Budget category does not belong to the specified budget");
+        }
         if (!List.of("EXTRA_FUNDS", "EMERGENCY_RELIEF").contains(requestType)) {
             throw new BadRequestException("Invalid request type: " + requestType);
         }
@@ -75,6 +85,7 @@ public class FundingRequestService {
         FundingRequest request = new FundingRequest();
         request.setPark(park);
         request.setBudget(budget);
+        request.setBudgetCategory(budgetCategory);
         request.setRequestedAmount(requestedAmount);
         request.setRequestType(requestType);
         request.setReason(reason);
@@ -103,6 +114,24 @@ public class FundingRequestService {
         if (approvedAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new BadRequestException("Approved amount cannot be negative");
         }
+
+        Budget budget = request.getBudget();
+        BudgetCategory category = request.getBudgetCategory();
+        BigDecimal unallocated = budget.getUnallocated();
+        if (approvedAmount.compareTo(unallocated) > 0) {
+            throw new BadRequestException("Insufficient unallocated funds: " + unallocated);
+        }
+
+        // Update budget and category (Rule 6)
+        budget.setTotalAmount(budget.getTotalAmount().add(approvedAmount));
+        budget.setUnallocated(unallocated.subtract(approvedAmount));
+        category.setAllocatedAmount(category.getAllocatedAmount().add(approvedAmount));
+        category.setBalance(category.getBalance().add(approvedAmount));
+        budget.setBalance(budgetRepository.sumCategoryBalances(budget.getId()));
+        budget.setUpdatedAt(LocalDateTime.now());
+
+        budgetCategoryRepository.save(category);
+        budgetRepository.save(budget);
 
         request.setStatus("APPROVED");
         request.setApprovedAmount(approvedAmount);
@@ -150,7 +179,7 @@ public class FundingRequestService {
 
     @Transactional
     public FundingRequest updateFundingRequest(UUID fundingRequestId, BigDecimal requestedAmount, String requestType,
-                                               String reason, UUID budgetId, String token) {
+                                               String reason, UUID budgetId, UUID budgetCategoryId, String token) {
         String email = jwtUtil.getEmailFromToken(token);
         User requester = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -177,6 +206,11 @@ public class FundingRequestService {
         if (!budget.getPark().getId().equals(park.getId())) {
             throw new BadRequestException("Budget does not belong to the specified park");
         }
+        BudgetCategory budgetCategory = budgetCategoryRepository.findById(budgetCategoryId)
+                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + budgetCategoryId));
+        if (!budgetCategory.getBudget().getId().equals(budgetId)) {
+            throw new BadRequestException("Budget category does not belong to the specified budget");
+        }
         if (!List.of("EXTRA_FUNDS", "EMERGENCY_RELIEF").contains(requestType)) {
             throw new BadRequestException("Invalid request type: " + requestType);
         }
@@ -188,6 +222,7 @@ public class FundingRequestService {
         request.setRequestType(requestType);
         request.setReason(reason);
         request.setBudget(budget);
+        request.setBudgetCategory(budgetCategory);
         request.setUpdatedAt(LocalDateTime.now());
         FundingRequest savedRequest = fundingRequestRepository.save(request);
         LOGGER.info("Updated funding request: ID=" + savedRequest.getId());

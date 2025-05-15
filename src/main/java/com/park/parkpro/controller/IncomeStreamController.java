@@ -1,7 +1,9 @@
 package com.park.parkpro.controller;
 
-import com.park.parkpro.dto.IncomeStreamRequestDto;
+import com.park.parkpro.domain.IncomeStream;
 import com.park.parkpro.dto.IncomeStreamResponseDto;
+import com.park.parkpro.dto.CreateIncomeStreamRequestDto;
+import com.park.parkpro.dto.UpdateIncomeStreamRequestDto;
 import com.park.parkpro.exception.UnauthorizedException;
 import com.park.parkpro.service.IncomeStreamService;
 import jakarta.validation.Valid;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -23,27 +26,52 @@ public class IncomeStreamController {
     @PostMapping("/budgets/{budgetId}/income-streams")
     public ResponseEntity<IncomeStreamResponseDto> createIncomeStream(
             @PathVariable UUID budgetId,
-            @Valid @RequestBody IncomeStreamRequestDto request,
+            @Valid @RequestBody CreateIncomeStreamRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        IncomeStreamResponseDto response = incomeStreamService.createIncomeStream(budgetId, request, token);
-        return ResponseEntity.ok(response);
+        IncomeStream incomeStream = incomeStreamService.createIncomeStream(
+                budgetId, request.getName(), request.getPercentage(), request.getTotalContribution(), token);
+        return ResponseEntity.ok(mapToDto(incomeStream));
     }
 
     @PatchMapping("/income-streams/{incomeStreamId}")
     public ResponseEntity<IncomeStreamResponseDto> updateIncomeStream(
             @PathVariable UUID incomeStreamId,
-            @Valid @RequestBody IncomeStreamRequestDto request,
+            @Valid @RequestBody UpdateIncomeStreamRequestDto request,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        IncomeStreamResponseDto response = incomeStreamService.updateIncomeStream(incomeStreamId, request, token);
-        return ResponseEntity.ok(response);
+        IncomeStream incomeStream = incomeStreamService.updateIncomeStream(
+                incomeStreamId, request.getName(), request.getPercentage(), request.getTotalContribution(), token);
+        return ResponseEntity.ok(mapToDto(incomeStream));
+    }
+
+    @GetMapping("/budgets/{budgetId}/income-streams")
+    public ResponseEntity<List<IncomeStreamResponseDto>> getIncomeStreamsByBudget(
+            @PathVariable UUID budgetId,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        List<IncomeStream> incomeStreams = incomeStreamService.getIncomeStreamsByBudget(budgetId);
+        return ResponseEntity.ok(incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/parks/{parkId}/income-streams/fiscal-year/{fiscalYear}")
+    public ResponseEntity<List<IncomeStreamResponseDto>> getIncomeStreamsByParkAndFiscalYear(
+            @PathVariable UUID parkId,
+            @PathVariable Integer fiscalYear,
+            @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Invalid or missing Authorization header");
+        }
+        List<IncomeStream> incomeStreams = incomeStreamService.getIncomeStreamsByParkAndFiscalYear(parkId, fiscalYear);
+        return ResponseEntity.ok(incomeStreams.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
 
     @DeleteMapping("/income-streams/{incomeStreamId}")
@@ -58,51 +86,19 @@ public class IncomeStreamController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/income-streams/{incomeStreamId}")
-    public ResponseEntity<IncomeStreamResponseDto> getIncomeStream(
-            @PathVariable UUID incomeStreamId,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        IncomeStreamResponseDto response = incomeStreamService.getIncomeStreamById(incomeStreamId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/budgets/{budgetId}/income-streams/fiscal-year/{fiscalYear}")
-    public ResponseEntity<List<IncomeStreamResponseDto>> getIncomeStreamsByBudgetAndFiscalYear(
-            @PathVariable UUID budgetId,
-            @PathVariable int fiscalYear,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        List<IncomeStreamResponseDto> response = incomeStreamService.getIncomeStreamsByBudgetAndFiscalYear(budgetId, fiscalYear, token);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/parks/{parkId}/income-streams/fiscal-year/{fiscalYear}")
-    public ResponseEntity<List<IncomeStreamResponseDto>> getIncomeStreamByParkIdAndFiscalYear(
-            @PathVariable UUID parkId,
-            @PathVariable Integer fiscalYear,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        String token = authHeader.substring(7);
-        List<IncomeStreamResponseDto> response = incomeStreamService.getIncomeStreamByParkIdAndFiscalYear(parkId, fiscalYear, token);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/budgets/{budgetId}/income-streams")
-    public ResponseEntity<List<IncomeStreamResponseDto>> getIncomeStreamsByBudget(
-            @PathVariable UUID budgetId,
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Invalid or missing Authorization header");
-        }
-        List<IncomeStreamResponseDto> response = incomeStreamService.getIncomeStreamsByBudget(budgetId);
-        return ResponseEntity.ok(response);
+    private IncomeStreamResponseDto mapToDto(IncomeStream incomeStream) {
+        return new IncomeStreamResponseDto(
+                incomeStream.getId(),
+                incomeStream.getBudget().getId(),
+                incomeStream.getPark().getId(),
+                incomeStream.getFiscalYear(),
+                incomeStream.getName(),
+                incomeStream.getPercentage(),
+                incomeStream.getTotalContribution(),
+                incomeStream.getActualBalance(),
+                incomeStream.getCreatedBy().getId(),
+                incomeStream.getCreatedAt(),
+                incomeStream.getUpdatedAt()
+        );
     }
 }

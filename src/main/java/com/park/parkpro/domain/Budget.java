@@ -1,6 +1,8 @@
 package com.park.parkpro.domain;
+
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -8,13 +10,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "budget", uniqueConstraints = @UniqueConstraint(columnNames = {"park_id", "fiscal_year"}))
+@Table(name = "budget")
 @Getter
 @Setter
+@NoArgsConstructor
 public class Budget {
     @Id
-    @GeneratedValue(generator = "uuid-ossp")
-    @Column(name = "id", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,6 +32,9 @@ public class Budget {
     @Column(name = "balance", nullable = false)
     private BigDecimal balance;
 
+    @Column(name = "unallocated", nullable = false)
+    private BigDecimal unallocated;
+
     @Column(name = "status", nullable = false)
     private String status; // DRAFT, APPROVED, REJECTED
 
@@ -44,20 +49,9 @@ public class Budget {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

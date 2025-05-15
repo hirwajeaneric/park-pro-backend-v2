@@ -16,6 +16,9 @@ public class CreateBudgetRequestDto {
     @NotBlank(message = "Status is required")
     private String status;
 
+    @Min(value = 0, message = "Unallocated amount cannot be negative")
+    private BigDecimal unallocated; // Added, optional
+
     // Getters and Setters
     public Integer getFiscalYear() { return fiscalYear; }
     public void setFiscalYear(Integer fiscalYear) { this.fiscalYear = fiscalYear; }
@@ -23,4 +26,6 @@ public class CreateBudgetRequestDto {
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public BigDecimal getUnallocated() { return unallocated; }
+    public void setUnallocated(BigDecimal unallocated) { this.unallocated = unallocated; }
 }

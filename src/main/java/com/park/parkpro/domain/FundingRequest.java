@@ -1,4 +1,3 @@
-// src/main/java/com/park/parkpro/domain/FundingRequest.java
 package com.park.parkpro.domain;
 
 import jakarta.persistence.*;
@@ -28,6 +27,10 @@ public class FundingRequest {
     @JoinColumn(name = "budget_id", nullable = false)
     private Budget budget;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "budget_category_id", nullable = false)
+    private BudgetCategory budgetCategory;
+
     @Column(name = "requested_amount", nullable = false)
     private BigDecimal requestedAmount;
 
@@ -35,7 +38,7 @@ public class FundingRequest {
     private BigDecimal approvedAmount;
 
     @Column(name = "request_type", nullable = false)
-    private String requestType; // "EXTRA_FUNDS" or "EMERGENCY_RELIEF"
+    private String requestType; // EXTRA_FUNDS, EMERGENCY_RELIEF
 
     @Column(name = "reason", nullable = false)
     private String reason;
@@ -49,7 +52,7 @@ public class FundingRequest {
     private User approver;
 
     @Column(name = "status", nullable = false)
-    private String status;
+    private String status; // PENDING, APPROVED, REJECTED
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
@@ -58,7 +61,7 @@ public class FundingRequest {
     private LocalDateTime approvedAt;
 
     @Column(name = "currency", nullable = false)
-    private String currency = "XAF";
+    private String currency;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,19 +22,25 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final ParkRepository parkRepository;
     private final UserRepository userRepository;
+    private final IncomeStreamRepository incomeStreamRepository;
     private final JwtUtil jwtUtil;
 
     public BudgetService(BudgetRepository budgetRepository, ParkRepository parkRepository,
-                         UserRepository userRepository, JwtUtil jwtUtil) {
+                         UserRepository userRepository, IncomeStreamRepository incomeStreamRepository,
+                         JwtUtil jwtUtil) {
         this.budgetRepository = budgetRepository;
         this.parkRepository = parkRepository;
         this.userRepository = userRepository;
+        this.incomeStreamRepository = incomeStreamRepository;
         this.jwtUtil = jwtUtil;
     }
 
     public Budget getBudgetById(UUID budgetId) {
-        return budgetRepository.findById(budgetId)
+        Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with id: " + budgetId));
+        // Sync balance with category balances
+        budget.setBalance(budgetRepository.sumCategoryBalances(budgetId));
+        return budget;
     }
 
     @Transactional
@@ -61,8 +66,10 @@ public class BudgetService {
         budget.setFiscalYear(fiscalYear);
         budget.setTotalAmount(totalAmount);
         budget.setBalance(totalAmount);
+        budget.setUnallocated(totalAmount); // Initialize unallocated
         budget.setStatus(status);
         budget.setCreatedBy(createdBy);
+        budget.setApprovedBy(null); // Explicitly null for DRAFT
         return budgetRepository.save(budget);
     }
 
@@ -86,7 +93,8 @@ public class BudgetService {
 
         budget.setTotalAmount(totalAmount);
         budget.setFiscalYear(fiscalYear);
-        budget.setBalance(totalAmount); // Reset balance since no expenses yet
+        budget.setUnallocated(totalAmount.subtract(budgetRepository.sumCategoryBalances(budgetId))); // Sync unallocated
+        budget.setBalance(budgetRepository.sumCategoryBalances(budgetId)); // Sync balance
         budget.setStatus(status);
         return budgetRepository.save(budget);
     }
@@ -109,6 +117,12 @@ public class BudgetService {
         budget.setStatus("APPROVED");
         budget.setApprovedBy(approver);
         budget.setApprovedAt(LocalDateTime.now());
+        // Top up government income streams (Rule 8)
+        incomeStreamRepository.findByBudgetIdAndNameContaining(budgetId, "Government")
+                .forEach(is -> {
+                    is.setActualBalance(is.getTotalContribution());
+                    incomeStreamRepository.save(is);
+                });
         return budgetRepository.save(budget);
     }
 
@@ -137,7 +151,9 @@ public class BudgetService {
         if (!parkRepository.existsById(parkId)) {
             throw new NotFoundException("Park not found with ID: " + parkId);
         }
-        return budgetRepository.findByParkId(parkId);
+        return budgetRepository.findByParkId(parkId).stream()
+                .peek(budget -> budget.setBalance(budgetRepository.sumCategoryBalances(budget.getId())))
+                .collect(Collectors.toList());
     }
 
     public List<BudgetByFiscalYearResponseDto> getBudgetsByFiscalYear(Integer fiscalYear, String token) {
@@ -145,7 +161,7 @@ public class BudgetService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         if (!List.of("GOVERNMENT_OFFICER", "AUDITOR").contains(user.getRole())) {
-            throw new ForbiddenException("Only GOVERNMENT OFFICER AND AUDITOR can view budgets by fiscal year");
+            throw new ForbiddenException("Only GOVERNMENT_OFFICER and AUDITOR can view budgets by fiscal year");
         }
 
         List<Park> allParks = parkRepository.findAll();
@@ -162,7 +178,8 @@ public class BudgetService {
                     park.getName(),
                     fiscalYear,
                     budget != null ? budget.getTotalAmount() : null,
-                    budget != null ? budget.getBalance() : null,
+                    budget != null ? budgetRepository.sumCategoryBalances(budget.getId()) : null,
+                    budget != null ? budget.getUnallocated() : null,
                     budget != null ? budget.getStatus() : null,
                     budget != null ? budget.getCreatedBy().getId() : null,
                     budget != null && budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,

@@ -12,13 +12,14 @@ public class IncomeStreamResponseDto {
     private String name;
     private BigDecimal percentage;
     private BigDecimal totalContribution;
+    private BigDecimal actualBalance;
     private UUID createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public IncomeStreamResponseDto(UUID id, UUID budgetId, UUID parkId, Integer fiscalYear, String name,
-                                   BigDecimal percentage, BigDecimal totalContribution, UUID createdBy,
-                                   LocalDateTime createdAt, LocalDateTime updatedAt) {
+                                   BigDecimal percentage, BigDecimal totalContribution, BigDecimal actualBalance,
+                                   UUID createdBy, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.budgetId = budgetId;
         this.parkId = parkId;
@@ -26,6 +27,7 @@ public class IncomeStreamResponseDto {
         this.name = name;
         this.percentage = percentage;
         this.totalContribution = totalContribution;
+        this.actualBalance = actualBalance;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -39,6 +41,7 @@ public class IncomeStreamResponseDto {
     public String getName() { return name; }
     public BigDecimal getPercentage() { return percentage; }
     public BigDecimal getTotalContribution() { return totalContribution; }
+    public BigDecimal getActualBalance() { return actualBalance; }
     public UUID getCreatedBy() { return createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -2,6 +2,7 @@ package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Activity;
 import com.park.parkpro.domain.Booking;
+import com.park.parkpro.domain.IncomeStream;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.exception.BadRequestException;
@@ -9,6 +10,8 @@ import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.ActivityRepository;
 import com.park.parkpro.repository.BookingRepository;
+import com.park.parkpro.repository.BudgetRepository;
+import com.park.parkpro.repository.IncomeStreamRepository;
 import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
 import com.park.parkpro.security.JwtUtil;
@@ -17,6 +20,7 @@ import com.stripe.model.PaymentIntent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,15 +35,21 @@ public class BookingService {
     private final ActivityRepository activityRepository;
     private final ParkRepository parkRepository;
     private final UserRepository userRepository;
+    private final BudgetRepository budgetRepository;
+    private final IncomeStreamRepository incomeStreamRepository;
     private final JwtUtil jwtUtil;
     private final StripeService stripeService;
 
     public BookingService(BookingRepository bookingRepository, ActivityRepository activityRepository,
-                          ParkRepository parkRepository, UserRepository userRepository, JwtUtil jwtUtil, StripeService stripeService) {
+                          ParkRepository parkRepository, UserRepository userRepository,
+                          BudgetRepository budgetRepository, IncomeStreamRepository incomeStreamRepository,
+                          JwtUtil jwtUtil, StripeService stripeService) {
         this.bookingRepository = bookingRepository;
         this.activityRepository = activityRepository;
         this.parkRepository = parkRepository;
         this.userRepository = userRepository;
+        this.budgetRepository = budgetRepository;
+        this.incomeStreamRepository = incomeStreamRepository;
         this.jwtUtil = jwtUtil;
         this.stripeService = stripeService;
     }
@@ -68,8 +78,29 @@ public class BookingService {
             throw new BadRequestException("Visit date must be today or in the future");
         }
 
+        // Determine fiscal year and budget
+        int fiscalYear = LocalDate.now().getYear();
+        var budget = budgetRepository.findByParkIdAndFiscalYear(park.getId(), fiscalYear)
+                .orElseThrow(() -> new NotFoundException("No budget found for park " + park.getId() + " and fiscal year " + fiscalYear));
+
+        // Find or create Bookings income stream
+        IncomeStream bookingStream = incomeStreamRepository.findByBudgetIdAndNameContaining(budget.getId(), "Bookings")
+                .stream().findFirst()
+                .orElseGet(() -> {
+                    IncomeStream newStream = new IncomeStream();
+                    newStream.setBudget(budget);
+                    newStream.setPark(park);
+                    newStream.setFiscalYear(fiscalYear);
+                    newStream.setName("Bookings");
+                    newStream.setPercentage(BigDecimal.ZERO);
+                    newStream.setTotalContribution(BigDecimal.ZERO);
+                    newStream.setActualBalance(BigDecimal.ZERO);
+                    newStream.setCreatedBy(visitor);
+                    return incomeStreamRepository.save(newStream);
+                });
+
         // Create and confirm PaymentIntent
-        Long amountInCents = activity.getPrice().multiply(new java.math.BigDecimal("100")).longValue();
+        Long amountInCents = activity.getPrice().multiply(new BigDecimal("100")).longValue();
         PaymentIntent paymentIntent = stripeService.createPaymentIntent(
                 amountInCents, "XAF", "Booking for " + activity.getName(), "temp_booking_id");
 
@@ -79,6 +110,10 @@ public class BookingService {
         if (!"succeeded".equals(paymentIntent.getStatus())) {
             throw new BadRequestException("Payment failed: " + paymentIntent.getLastPaymentError().getMessage());
         }
+
+        // Update income stream actual balance (Rule 3)
+        bookingStream.setActualBalance(bookingStream.getActualBalance().add(activity.getPrice()));
+        incomeStreamRepository.save(bookingStream);
 
         Booking booking = new Booking();
         booking.setVisitor(visitor);
@@ -121,6 +156,16 @@ public class BookingService {
         if ("CANCELLED".equals(booking.getStatus())) {
             throw new BadRequestException("Booking is already cancelled");
         }
+
+        // Revert income stream actual balance
+        int fiscalYear = LocalDate.now().getYear();
+        var budget = budgetRepository.findByParkIdAndFiscalYear(booking.getPark().getId(), fiscalYear)
+                .orElseThrow(() -> new NotFoundException("No budget found for park " + booking.getPark().getId() + " and fiscal year " + fiscalYear));
+        IncomeStream bookingStream = incomeStreamRepository.findByBudgetIdAndNameContaining(budget.getId(), "Bookings")
+                .stream().findFirst()
+                .orElseThrow(() -> new NotFoundException("No Bookings income stream found for budget " + budget.getId()));
+        bookingStream.setActualBalance(bookingStream.getActualBalance().subtract(booking.getAmount()));
+        incomeStreamRepository.save(bookingStream);
 
         booking.setStatus("CANCELLED");
         booking.setUpdatedAt(LocalDateTime.now());

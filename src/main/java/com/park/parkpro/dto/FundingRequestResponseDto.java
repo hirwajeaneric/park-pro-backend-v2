@@ -9,6 +9,8 @@ public class FundingRequestResponseDto {
     private UUID parkId;
     private String parkName;
     private UUID budgetId;
+    private UUID budgetCategoryId;
+    private String budgetCategoryName;
     private BigDecimal requestedAmount;
     private BigDecimal approvedAmount;
     private String requestType;
@@ -22,15 +24,17 @@ public class FundingRequestResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public FundingRequestResponseDto(UUID id, UUID parkId, String parkName, UUID budgetId, BigDecimal requestedAmount,
-                                     BigDecimal approvedAmount, String requestType, String reason,
-                                     UUID requesterId, UUID approverId, String status, String rejectionReason,
-                                     LocalDateTime approvedAt, String currency, LocalDateTime createdAt,
-                                     LocalDateTime updatedAt) {
+    public FundingRequestResponseDto(UUID id, UUID parkId, String parkName, UUID budgetId, UUID budgetCategoryId,
+                                     String budgetCategoryName, BigDecimal requestedAmount, BigDecimal approvedAmount,
+                                     String requestType, String reason, UUID requesterId, UUID approverId,
+                                     String status, String rejectionReason, LocalDateTime approvedAt, String currency,
+                                     LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.parkId = parkId;
         this.parkName = parkName;
         this.budgetId = budgetId;
+        this.budgetCategoryId = budgetCategoryId;
+        this.budgetCategoryName = budgetCategoryName;
         this.requestedAmount = requestedAmount;
         this.approvedAmount = approvedAmount;
         this.requestType = requestType;
@@ -50,6 +54,8 @@ public class FundingRequestResponseDto {
     public UUID getParkId() { return parkId; }
     public String getParkName() { return parkName; }
     public UUID getBudgetId() { return budgetId; }
+    public UUID getBudgetCategoryId() { return budgetCategoryId; }
+    public String getBudgetCategoryName() { return budgetCategoryName; }
     public BigDecimal getRequestedAmount() { return requestedAmount; }
     public BigDecimal getApprovedAmount() { return approvedAmount; }
     public String getRequestType() { return requestType; }

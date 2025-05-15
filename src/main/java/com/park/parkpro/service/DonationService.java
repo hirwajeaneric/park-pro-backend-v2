@@ -1,6 +1,7 @@
 package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Donation;
+import com.park.parkpro.domain.IncomeStream;
 import com.park.parkpro.domain.Park;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.dto.OutstandingDonorResponseDto;
@@ -8,6 +9,7 @@ import com.park.parkpro.exception.ForbiddenException;
 import com.park.parkpro.exception.NotFoundException;
 import com.park.parkpro.repository.BudgetRepository;
 import com.park.parkpro.repository.DonationRepository;
+import com.park.parkpro.repository.IncomeStreamRepository;
 import com.park.parkpro.repository.ParkRepository;
 import com.park.parkpro.repository.UserRepository;
 import com.park.parkpro.security.JwtUtil;
@@ -31,14 +33,17 @@ public class DonationService {
     private final UserRepository userRepository;
     private final ParkRepository parkRepository;
     private final BudgetRepository budgetRepository;
+    private final IncomeStreamRepository incomeStreamRepository;
     private final JwtUtil jwtUtil;
 
     public DonationService(DonationRepository donationRepository, UserRepository userRepository,
-                           ParkRepository parkRepository, BudgetRepository budgetRepository, JwtUtil jwtUtil) {
+                           ParkRepository parkRepository, BudgetRepository budgetRepository,
+                           IncomeStreamRepository incomeStreamRepository, JwtUtil jwtUtil) {
         this.donationRepository = donationRepository;
         this.userRepository = userRepository;
         this.parkRepository = parkRepository;
         this.budgetRepository = budgetRepository;
+        this.incomeStreamRepository = incomeStreamRepository;
         this.jwtUtil = jwtUtil;
     }
 
@@ -61,9 +66,26 @@ public class DonationService {
             throw new IllegalArgumentException("Invalid amount format");
         }
 
-        // Determine fiscal year
-        int currentFiscalYear = LocalDate.now().getYear();
-        int fiscalYear = currentFiscalYear;
+        // Determine fiscal year and budget
+        int fiscalYear = LocalDate.now().getYear();
+        var budget = budgetRepository.findByParkIdAndFiscalYear(parkId, fiscalYear)
+                .orElseThrow(() -> new NotFoundException("No budget found for park " + parkId + " and fiscal year " + fiscalYear));
+
+        // Find or create Donations income stream
+        IncomeStream donationStream = incomeStreamRepository.findByBudgetIdAndNameContaining(budget.getId(), "Donations")
+                .stream().findFirst()
+                .orElseGet(() -> {
+                    IncomeStream newStream = new IncomeStream();
+                    newStream.setBudget(budget);
+                    newStream.setPark(park);
+                    newStream.setFiscalYear(fiscalYear);
+                    newStream.setName("Donations");
+                    newStream.setPercentage(BigDecimal.ZERO);
+                    newStream.setTotalContribution(BigDecimal.ZERO);
+                    newStream.setActualBalance(BigDecimal.ZERO);
+                    newStream.setCreatedBy(donor);
+                    return incomeStreamRepository.save(newStream);
+                });
 
         // Payment processing with Stripe
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
@@ -81,6 +103,10 @@ public class DonationService {
                 .build();
 
         PaymentIntent paymentIntent = PaymentIntent.create(params);
+
+        // Update income stream actual balance (Rule 3)
+        donationStream.setActualBalance(donationStream.getActualBalance().add(donationAmount));
+        incomeStreamRepository.save(donationStream);
 
         Donation donation = new Donation();
         donation.setDonor(donor);
@@ -111,20 +137,20 @@ public class DonationService {
             throw new IllegalStateException("Only CONFIRMED donations can be cancelled");
         }
 
-        donation.setStatus("CANCELLED");
-        donation.setUpdatedAt(LocalDateTime.now());
+        // Revert income stream actual balance (Rule 3)
+        var budget = budgetRepository.findByParkIdAndFiscalYear(donation.getPark().getId(), donation.getFiscalYear())
+                .orElseThrow(() -> new NotFoundException("No budget found for park " + donation.getPark().getId() + " and fiscal year " + donation.getFiscalYear()));
+        IncomeStream donationStream = incomeStreamRepository.findByBudgetIdAndNameContaining(budget.getId(), "Donations")
+                .stream().findFirst()
+                .orElseThrow(() -> new NotFoundException("No Donations income stream found for budget " + budget.getId()));
+        donationStream.setActualBalance(donationStream.getActualBalance().subtract(donation.getAmount()));
+        incomeStreamRepository.save(donationStream);
 
         // Refund via Stripe (simplified)
-        // In practice, implement Stripe refund logic here
+        // TODO: Implement actual Stripe refund logic here
 
-        // Revert budget balance
-        budgetRepository.findByParkIdAndFiscalYear(donation.getPark().getId(), donation.getFiscalYear())
-                .ifPresent(budget -> {
-                    budget.setBalance(budget.getBalance().subtract(donation.getAmount()));
-                    budget.setUpdatedAt(LocalDateTime.now());
-                    budgetRepository.save(budget);
-                });
-
+        donation.setStatus("CANCELLED");
+        donation.setUpdatedAt(LocalDateTime.now());
         return donationRepository.save(donation);
     }
 

@@ -38,7 +38,7 @@ public class FundingRequestController {
         LOGGER.info("Creating funding request for parkId: " + parkId);
         FundingRequest fundingRequest = fundingRequestService.createFundingRequest(
                 parkId, request.getRequestedAmount(), request.getRequestType(),
-                request.getReason(), request.getBudgetId(), token);
+                request.getReason(), request.getBudgetId(), request.getBudgetCategoryId(), token);
         return ResponseEntity.created(URI.create("/api/funding-requests/" + fundingRequest.getId()))
                 .body(mapToFundingRequestDto(fundingRequest));
     }
@@ -60,7 +60,7 @@ public class FundingRequestController {
     @PostMapping("/funding-requests/{fundingRequestId}/reject")
     public ResponseEntity<FundingRequestResponseDto> rejectFundingRequest(
             @PathVariable UUID fundingRequestId,
-            @RequestParam String rejectionReason,
+            @RequestParam(required = false) String rejectionReason,
             @RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Invalid or missing Authorization header");
@@ -95,7 +95,7 @@ public class FundingRequestController {
         LOGGER.info("Updating funding request: " + fundingRequestId);
         FundingRequest fundingRequest = fundingRequestService.updateFundingRequest(
                 fundingRequestId, request.getRequestedAmount(), request.getRequestType(),
-                request.getReason(), request.getBudgetId(), token);
+                request.getReason(), request.getBudgetId(), request.getBudgetCategoryId(), token);
         return ResponseEntity.ok(mapToFundingRequestDto(fundingRequest));
     }
 
@@ -179,6 +179,8 @@ public class FundingRequestController {
                 fundingRequest.getPark().getId(),
                 fundingRequest.getPark().getName(),
                 fundingRequest.getBudget().getId(),
+                fundingRequest.getBudgetCategory().getId(),
+                fundingRequest.getBudgetCategory().getName(),
                 fundingRequest.getRequestedAmount(),
                 fundingRequest.getApprovedAmount(),
                 fundingRequest.getRequestType(),

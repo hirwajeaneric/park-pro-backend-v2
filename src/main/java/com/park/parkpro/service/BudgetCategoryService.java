@@ -35,7 +35,13 @@ public class BudgetCategoryService {
     }
 
     @Transactional
-    public BudgetCategory createBudgetCategory(UUID budgetId, String name, BigDecimal allocatedAmount, String token) {
+    public BudgetCategory createBudgetCategory(UUID budgetId, String name, BigDecimal percentage, String token) {
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
+        if (!"DRAFT".equals(budget.getStatus())) {
+            throw new BadRequestException("Categories can only be added to DRAFT budgets");
+        }
+
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -43,35 +49,32 @@ public class BudgetCategoryService {
             throw new ForbiddenException("Only ADMIN or FINANCE_OFFICER can create budget categories");
         }
 
-        Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
-//        if (!"APPROVED".equals(budget.getStatus())) {
-//            throw new BadRequestException("Categories can only be added to APPROVED budgets");
-//        }
-        if (budget.getBalance().compareTo(allocatedAmount) < 0) {
-            throw new BadRequestException("Allocated amount exceeds remaining budget balance");
+        // Calculate allocated amount
+        BigDecimal allocatedAmount = budget.getBalance().multiply(percentage.divide(BigDecimal.valueOf(100)));
+        // Ensure unallocated is initialized correctly
+        BigDecimal unallocated = budget.getUnallocated() != null ? budget.getUnallocated() : budget.getBalance();
+        if (allocatedAmount.compareTo(unallocated) > 0) {
+            throw new BadRequestException("Insufficient unallocated funds: " + unallocated + " available, " + allocatedAmount + " required");
         }
 
-        BudgetCategory category = new BudgetCategory(budget, name, allocatedAmount);
-        budget.setBalance(budget.getBalance().subtract(allocatedAmount));
-        budgetRepository.save(budget);
+        BudgetCategory category = new BudgetCategory();
+        category.setBudget(budget);
+        category.setName(name);
+        category.setAllocatedAmount(allocatedAmount);
+        category.setUsedAmount(BigDecimal.ZERO);
+        category.setBalance(allocatedAmount);
         return budgetCategoryRepository.save(category);
     }
 
-    public List<BudgetCategory> getCategoriesByBudget(UUID budgetId) {
-        if (!budgetRepository.existsById(budgetId)) {
-            throw new NotFoundException("Budget not found with ID: " + budgetId);
-        }
-        return budgetCategoryRepository.findByBudgetId(budgetId);
-    }
-
-    public BudgetCategory getCategoryById(UUID categoryId) {
-        return budgetCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
-    }
-
     @Transactional
-    public BudgetCategory updateBudgetCategory(UUID categoryId, String name, BigDecimal allocatedAmount, String token) {
+    public BudgetCategory updateBudgetCategory(UUID categoryId, BigDecimal allocatedAmount, String token) {
+        BudgetCategory category = budgetCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
+        Budget budget = category.getBudget();
+        if (!"DRAFT".equals(budget.getStatus())) {
+            throw new BadRequestException("Categories can only be updated for DRAFT budgets");
+        }
+
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -79,32 +82,33 @@ public class BudgetCategoryService {
             throw new ForbiddenException("Only ADMIN or FINANCE_OFFICER can update budget categories");
         }
 
-        BudgetCategory category = budgetCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
-        Budget budget = category.getBudget();
-//        if (!"DRAFT".equals(budget.getStatus())) {
-//            throw new BadRequestException("Only categories in DRAFT budgets can be updated");
-//        }
-
-        BigDecimal oldAllocatedAmount = category.getAllocatedAmount();
-        if (allocatedAmount.compareTo(oldAllocatedAmount) != 0) {
-            BigDecimal difference = allocatedAmount.subtract(oldAllocatedAmount);
-            if (budget.getBalance().compareTo(difference) < 0) {
-                throw new BadRequestException("New allocated amount exceeds remaining budget balance");
+        BigDecimal oldAllocated = category.getAllocatedAmount();
+        BigDecimal unallocated = budget.getUnallocated();
+        if (allocatedAmount.compareTo(oldAllocated) > 0) {
+            BigDecimal additional = allocatedAmount.subtract(oldAllocated);
+            if (additional.compareTo(unallocated) > 0) {
+                throw new BadRequestException("Insufficient unallocated funds for category allocation");
             }
-            budget.setBalance(budget.getBalance().subtract(difference));
-            category.setAllocatedAmount(allocatedAmount);
-            category.setBalance(allocatedAmount.subtract(category.getUsedAmount()));
-            budgetRepository.save(budget);
         }
-        if (!name.equals(category.getName())) {
-            category.setName(name);
-        }
+
+        category.setAllocatedAmount(allocatedAmount);
+        category.setBalance(allocatedAmount.subtract(category.getUsedAmount()));
         return budgetCategoryRepository.save(category);
+    }
+
+    public List<BudgetCategory> getBudgetCategoriesByBudget(UUID budgetId) {
+        return budgetCategoryRepository.findByBudgetId(budgetId);
     }
 
     @Transactional
     public void deleteBudgetCategory(UUID categoryId, String token) {
+        BudgetCategory category = budgetCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
+        Budget budget = category.getBudget();
+        if (!"DRAFT".equals(budget.getStatus())) {
+            throw new BadRequestException("Categories can only be deleted for DRAFT budgets");
+        }
+
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -112,15 +116,6 @@ public class BudgetCategoryService {
             throw new ForbiddenException("Only ADMIN or FINANCE_OFFICER can delete budget categories");
         }
 
-        BudgetCategory category = budgetCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
-        if (budgetCategoryRepository.existsByIdAndUsedAmountGreaterThan(categoryId, BigDecimal.ZERO)) {
-            throw new BadRequestException("Cannot delete category with used amount greater than zero");
-        }
-
-        Budget budget = category.getBudget();
-        budget.setBalance(budget.getBalance().add(category.getAllocatedAmount()));
-        budgetRepository.save(budget);
         budgetCategoryRepository.delete(category);
     }
 }

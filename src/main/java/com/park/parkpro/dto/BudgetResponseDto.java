@@ -11,6 +11,7 @@ public class BudgetResponseDto {
     private Integer fiscalYear;
     private BigDecimal totalAmount;
     private BigDecimal balance;
+    private BigDecimal unallocated; // Added
     private String status;
     private UUID createdBy;
     private UUID approvedBy;
@@ -18,15 +19,16 @@ public class BudgetResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public BudgetResponseDto(UUID id, UUID parkId, String parkName, Integer fiscalYear, BigDecimal totalAmount, BigDecimal balance,
-                             String status, UUID createdBy, UUID approvedBy, LocalDateTime approvedAt,
-                             LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public BudgetResponseDto(UUID id, UUID parkId, String parkName, Integer fiscalYear, BigDecimal totalAmount,
+                             BigDecimal balance, BigDecimal unallocated, String status, UUID createdBy, UUID approvedBy,
+                             LocalDateTime approvedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.parkId = parkId;
         this.parkName = parkName;
         this.fiscalYear = fiscalYear;
         this.totalAmount = totalAmount;
         this.balance = balance;
+        this.unallocated = unallocated;
         this.status = status;
         this.createdBy = createdBy;
         this.approvedBy = approvedBy;
@@ -42,6 +44,7 @@ public class BudgetResponseDto {
     public Integer getFiscalYear() { return fiscalYear; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public BigDecimal getBalance() { return balance; }
+    public BigDecimal getUnallocated() { return unallocated; }
     public String getStatus() { return status; }
     public UUID getCreatedBy() { return createdBy; }
     public UUID getApprovedBy() { return approvedBy; }
