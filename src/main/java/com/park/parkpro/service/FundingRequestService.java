@@ -91,6 +91,7 @@ public class FundingRequestService {
         request.setReason(reason);
         request.setRequester(requester);
         request.setStatus("PENDING");
+        request.setCurrency("XAF");
         request.setCreatedAt(LocalDateTime.now());
         request.setUpdatedAt(LocalDateTime.now());
         FundingRequest savedRequest = fundingRequestRepository.save(request);

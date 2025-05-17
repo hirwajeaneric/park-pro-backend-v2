@@ -110,7 +110,7 @@ public class OpportunityApplicationController {
 
     private OpportunityApplicationResponseDto mapToApplicationDto(OpportunityApplication application) {
         return new OpportunityApplicationResponseDto(
-                application.getId(), application.getOpportunity().getId(), application.getFirstName(),
+                application.getId(), application.getOpportunity().getId(), application.getOpportunity().getTitle(), application.getFirstName(),
                 application.getLastName(), application.getEmail(), application.getApplicationLetterUrl(),
                 application.getStatus(), application.getApprovalMessage(), application.getRejectionReason(),
                 application.getCreatedAt(), application.getUpdatedAt()

@@ -40,49 +40,66 @@ public class IncomeStreamService {
     }
 
     @Transactional
-    public IncomeStream createIncomeStream(UUID budgetId, String name, BigDecimal percentage,
-                                           BigDecimal totalContribution, String token) {
+    public IncomeStream createIncomeStream(UUID budgetId, String name, BigDecimal percentage, BigDecimal totalContribution, String token) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
-        if (!"DRAFT".equals(budget.getStatus())) {
-            throw new BadRequestException("Income streams can only be added to DRAFT budgets");
-        }
-
-        String email = jwtUtil.getEmailFromToken(token);
-        User createdBy = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!"FINANCE_OFFICER".equals(createdBy.getRole())) {
-            throw new ForbiddenException("Only FINANCE_OFFICER can create income streams");
-        }
-
-        Park park = budget.getPark();
-        IncomeStream incomeStream = new IncomeStream();
-        incomeStream.setBudget(budget);
-        incomeStream.setPark(park);
-        incomeStream.setFiscalYear(budget.getFiscalYear());
-        incomeStream.setName(name);
-        incomeStream.setPercentage(percentage);
-        incomeStream.setTotalContribution(totalContribution);
-        incomeStream.setActualBalance(BigDecimal.ZERO);
-        incomeStream.setCreatedBy(createdBy);
-        return incomeStreamRepository.save(incomeStream);
-    }
-
-    @Transactional
-    public IncomeStream updateIncomeStream(UUID incomeStreamId, String name, BigDecimal percentage,
-                                           BigDecimal totalContribution, String token) {
-        IncomeStream incomeStream = incomeStreamRepository.findById(incomeStreamId)
-                .orElseThrow(() -> new NotFoundException("Income stream not found with ID: " + incomeStreamId));
-        Budget budget = incomeStream.getBudget();
-        if (!"DRAFT".equals(budget.getStatus())) {
-            throw new BadRequestException("Income streams can only be updated for DRAFT budgets");
-        }
 
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-        if (!"FINANCE_OFFICER".equals(user.getRole())) {
-            throw new ForbiddenException("Only FINANCE_OFFICER can update income streams");
+
+        // Restrict modifications to DRAFT budgets
+        if (!"DRAFT".equals(budget.getStatus())) {
+            throw new BadRequestException("Income streams can only be modified for DRAFT budgets");
+        }
+
+        // Validate percentage
+        BigDecimal sumPercentage = incomeStreamRepository.sumPercentageByBudgetId(budgetId)
+                .orElse(BigDecimal.ZERO);
+        if (sumPercentage.add(percentage).compareTo(new BigDecimal("100")) > 0) {
+            throw new BadRequestException("Total percentage for budget exceeds 100%");
+        }
+
+        // Validate total_contribution
+        BigDecimal sumContribution = incomeStreamRepository.sumTotalContributionByBudgetId(budgetId)
+                .orElse(BigDecimal.ZERO);
+        if (sumContribution.add(totalContribution).compareTo(budget.getTotalAmount()) > 0) {
+            throw new BadRequestException("Total contribution exceeds budget total amount");
+        }
+
+        IncomeStream incomeStream = new IncomeStream();
+        incomeStream.setBudget(budget);
+        incomeStream.setName(name);
+        incomeStream.setPercentage(percentage);
+        incomeStream.setTotalContribution(totalContribution);
+        incomeStream.setActualBalance(BigDecimal.ZERO);
+        incomeStream.setCreatedBy(user);
+        return incomeStreamRepository.save(incomeStream);
+    }
+
+    @Transactional
+    public IncomeStream updateIncomeStream(UUID incomeStreamId, String name, BigDecimal percentage, BigDecimal totalContribution, String token) {
+        IncomeStream incomeStream = incomeStreamRepository.findById(incomeStreamId)
+                .orElseThrow(() -> new NotFoundException("Income stream not found with ID: " + incomeStreamId));
+        Budget budget = incomeStream.getBudget();
+
+        // Restrict modifications to DRAFT budgets
+        if (!"DRAFT".equals(budget.getStatus())) {
+            throw new BadRequestException("Income streams can only be modified for DRAFT budgets");
+        }
+
+        // Validate percentage
+        BigDecimal sumPercentage = incomeStreamRepository.sumPercentageByBudgetIdExcluding(budget.getId(), incomeStreamId)
+                .orElse(BigDecimal.ZERO);
+        if (sumPercentage.add(percentage).compareTo(new BigDecimal("100")) > 0) {
+            throw new BadRequestException("Total percentage for budget exceeds 100%");
+        }
+
+        // Validate total_contribution
+        BigDecimal sumContribution = incomeStreamRepository.sumTotalContributionByBudgetIdExcluding(budget.getId(), incomeStreamId)
+                .orElse(BigDecimal.ZERO);
+        if (sumContribution.add(totalContribution).compareTo(budget.getTotalAmount()) > 0) {
+            throw new BadRequestException("Total contribution exceeds budget total amount");
         }
 
         incomeStream.setName(name);

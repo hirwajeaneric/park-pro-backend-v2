@@ -69,10 +69,6 @@ public class OpportunityApplicationService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + userEmail));
 
-        if (!Arrays.asList("ADMIN", "PARK_MANAGER").contains(user.getRole())) {
-            throw new ForbiddenException("Only ADMIN or PARK_MANAGER can update application status");
-        }
-
         OpportunityApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found with ID: " + applicationId));
 

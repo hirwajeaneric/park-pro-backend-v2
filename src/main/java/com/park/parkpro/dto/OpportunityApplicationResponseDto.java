@@ -6,6 +6,7 @@ import java.util.UUID;
 public class OpportunityApplicationResponseDto {
     private UUID id;
     private UUID opportunityId;
+    private String opportunityName;
     private String firstName;
     private String lastName;
     private String email;
@@ -16,12 +17,13 @@ public class OpportunityApplicationResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public OpportunityApplicationResponseDto(UUID id, UUID opportunityId, String firstName, String lastName,
+    public OpportunityApplicationResponseDto(UUID id, UUID opportunityId, String opportunityName, String firstName, String lastName,
                                              String email, String applicationLetterUrl, String status,
                                              String approvalMessage, String rejectionReason,
                                              LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.opportunityId = opportunityId;
+        this.opportunityName = opportunityName;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -36,6 +38,7 @@ public class OpportunityApplicationResponseDto {
     // Getters
     public UUID getId() { return id; }
     public UUID getOpportunityId() { return opportunityId; }
+    public String getOpportunityName() { return opportunityName; }
     public String getFirstName() { return firstName; }
     public String getLastName() { return lastName; }
     public String getEmail() { return email; }

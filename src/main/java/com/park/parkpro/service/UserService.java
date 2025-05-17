@@ -70,7 +70,9 @@ public class UserService {
             user.setActive(true); // Admin-created users are active immediately
             user.setMustResetPassword(true); // Require reset on first login
             User savedUser = userRepository.save(user);
+
             sendTempPasswordEmail(savedUser.getEmail(), tempPassword);
+
             return savedUser;
         }
     }
@@ -270,7 +272,7 @@ public class UserService {
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new NotFoundException("Park with ID '" + parkId + "' not found"));
         if (!"PARK_MANAGER".equals(user.getRole()) && !"FINANCE_OFFICER".equals(user.getRole())) {
-            throw new BadRequestException("Only Park manager and Finance officer users can be assigned to a park");
+            throw new BadRequestException("Only Park staff and Finance officer users can be assigned to a park");
         }
         if (user.getPark() != null) {
             throw new ConflictException("User " + userId + " is already assigned to park " + user.getPark().getId());
