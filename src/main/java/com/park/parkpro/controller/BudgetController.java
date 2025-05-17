@@ -107,7 +107,6 @@ public class BudgetController {
         return ResponseEntity.ok(budgets);
     }
 
-    // Expense Endpoints
     @PostMapping("/budgets/{budgetId}/expenses")
     public ResponseEntity<ExpenseResponseDto> createExpense(
             @PathVariable UUID budgetId,
@@ -219,7 +218,6 @@ public class BudgetController {
         return ResponseEntity.ok(expenses.stream().map(this::mapToExpenseDto).collect(Collectors.toList()));
     }
 
-    // Withdraw Request Endpoints
     @PostMapping("/budgets/{budgetId}/withdraw-requests")
     public ResponseEntity<WithdrawRequestResponseDto> createWithdrawRequest(
             @PathVariable UUID budgetId,
@@ -345,7 +343,6 @@ public class BudgetController {
         return ResponseEntity.ok(requests.stream().map(this::mapToWithdrawRequestDto).collect(Collectors.toList()));
     }
 
-    // Mapping Methods
     private BudgetResponseDto mapToDto(Budget budget) {
         return new BudgetResponseDto(
                 budget.getId(),
@@ -357,7 +354,7 @@ public class BudgetController {
                 budget.getUnallocated(),
                 budget.getStatus(),
                 budget.getCreatedBy().getId(),
-                budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null, // Handle null
+                budget.getApprovedBy() != null ? budget.getApprovedBy().getId() : null,
                 budget.getApprovedAt(),
                 budget.getCreatedAt(),
                 budget.getUpdatedAt());
@@ -385,7 +382,7 @@ public class BudgetController {
                 expense.getId(), expense.getBudget().getId(), expense.getAmount(), expense.getDescription(),
                 expense.getBudgetCategory().getId(), expense.getBudgetCategory().getName(),
                 expense.getPark().getId(), expense.getPark().getName(), expense.getCreatedBy() != null ? expense.getCreatedBy().getId() : null,
-                expense.getAuditStatus(), expense.getReceiptUrl(), expense.getCurrency(),
+                expense.getAuditStatus(), expense.getJustification(), expense.getReceiptUrl(), expense.getCurrency(),
                 expense.getCreatedAt(), expense.getUpdatedAt());
     }
 
@@ -395,7 +392,7 @@ public class BudgetController {
                 request.getRequester().getId(), request.getApprover() != null ? request.getApprover().getId() : null,
                 request.getBudgetCategory().getId(), request.getBudgetCategory().getName(),
                 request.getBudget().getId(), request.getReceiptUrl(), request.getStatus(), request.getAuditStatus(),
-                request.getApprovedAt(), request.getRejectionReason(), request.getPark().getId(), request.getPark().getName(), request.getCurrency(),
+                request.getJustification(), request.getApprovedAt(), request.getRejectionReason(), request.getPark().getId(), request.getPark().getName(), request.getCurrency(),
                 request.getCreatedAt(), request.getUpdatedAt());
     }
 }

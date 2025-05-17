@@ -38,6 +38,9 @@ public class Expense {
     @Column(name = "audit_status", nullable = false)
     private AuditStatus auditStatus = AuditStatus.UNJUSTIFIED;
 
+    @Column(name = "justification", length = 500)
+    private String justification;
+
     @Column(name = "receipt_url")
     private String receiptUrl;
 
@@ -50,7 +53,6 @@ public class Expense {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Constructors
     public Expense() {}
 
     public Expense(Budget budget, BigDecimal amount, String description, BudgetCategory budgetCategory,
@@ -81,6 +83,8 @@ public class Expense {
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public AuditStatus getAuditStatus() { return auditStatus; }
     public void setAuditStatus(AuditStatus auditStatus) { this.auditStatus = auditStatus; }
+    public String getJustification() { return justification; }
+    public void setJustification(String justification) { this.justification = justification; }
     public String getReceiptUrl() { return receiptUrl; }
     public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
     public String getCurrency() { return currency; }

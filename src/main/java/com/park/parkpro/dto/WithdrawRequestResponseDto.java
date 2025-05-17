@@ -20,6 +20,7 @@ public class WithdrawRequestResponseDto {
     private String receiptUrl;
     private WithdrawRequestStatus status;
     private AuditStatus auditStatus;
+    private String justification;
     private LocalDateTime approvedAt;
     private String rejectionReason;
     private UUID parkId;
@@ -31,8 +32,8 @@ public class WithdrawRequestResponseDto {
     public WithdrawRequestResponseDto(UUID id, BigDecimal amount, String reason, String description,
                                       UUID requesterId, UUID approverId, UUID budgetCategoryId, String budgetCategoryName,
                                       UUID budgetId, String receiptUrl, WithdrawRequestStatus status, AuditStatus auditStatus,
-                                      LocalDateTime approvedAt, String rejectionReason, UUID parkId, String parkName, String currency,
-                                      LocalDateTime createdAt, LocalDateTime updatedAt) {
+                                      String justification, LocalDateTime approvedAt, String rejectionReason, UUID parkId, String parkName,
+                                      String currency, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.amount = amount;
         this.reason = reason;
@@ -45,6 +46,7 @@ public class WithdrawRequestResponseDto {
         this.receiptUrl = receiptUrl;
         this.status = status;
         this.auditStatus = auditStatus;
+        this.justification = justification;
         this.approvedAt = approvedAt;
         this.rejectionReason = rejectionReason;
         this.parkId = parkId;
@@ -67,6 +69,7 @@ public class WithdrawRequestResponseDto {
     public String getReceiptUrl() { return receiptUrl; }
     public WithdrawRequestStatus getStatus() { return status; }
     public AuditStatus getAuditStatus() { return auditStatus; }
+    public String getJustification() { return justification; }
     public LocalDateTime getApprovedAt() { return approvedAt; }
     public String getRejectionReason() { return rejectionReason; }
     public UUID getParkId() { return parkId; }

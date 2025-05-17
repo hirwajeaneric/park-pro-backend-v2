@@ -44,9 +44,12 @@ public class WithdrawRequest {
     @Enumerated(EnumType.STRING)
     private WithdrawRequestStatus status = WithdrawRequestStatus.PENDING;
 
-    @Column(name = "audit_status", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "audit_status", nullable = false)
     private AuditStatus auditStatus = AuditStatus.UNJUSTIFIED;
+
+    @Column(name = "justification", length = 500)
+    private String justification;
 
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
@@ -71,7 +74,6 @@ public class WithdrawRequest {
         REJECTED, APPROVED, PENDING
     }
 
-    // Constructors
     public WithdrawRequest() {}
 
     public WithdrawRequest(BigDecimal amount, String reason, String description, User requester,
@@ -112,6 +114,8 @@ public class WithdrawRequest {
     public void setStatus(WithdrawRequestStatus status) { this.status = status; }
     public AuditStatus getAuditStatus() { return auditStatus; }
     public void setAuditStatus(AuditStatus auditStatus) { this.auditStatus = auditStatus; }
+    public String getJustification() { return justification; }
+    public void setJustification(String justification) { this.justification = justification; }
     public LocalDateTime getApprovedAt() { return approvedAt; }
     public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
     public String getRejectionReason() { return rejectionReason; }

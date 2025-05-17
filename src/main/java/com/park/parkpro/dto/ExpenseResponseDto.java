@@ -1,7 +1,6 @@
 package com.park.parkpro.dto;
 
 import com.park.parkpro.domain.AuditStatus;
-import com.park.parkpro.domain.Expense;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,6 +17,7 @@ public class ExpenseResponseDto {
     private String parkName;
     private UUID createdBy;
     private AuditStatus auditStatus;
+    private String justification;
     private String receiptUrl;
     private String currency;
     private LocalDateTime createdAt;
@@ -25,7 +25,7 @@ public class ExpenseResponseDto {
 
     public ExpenseResponseDto(UUID id, UUID budgetId, BigDecimal amount, String description,
                               UUID budgetCategoryId, String budgetCategoryName, UUID parkId, String parkName,
-                              UUID createdBy, AuditStatus auditStatus, String receiptUrl,
+                              UUID createdBy, AuditStatus auditStatus, String justification, String receiptUrl,
                               String currency, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.budgetId = budgetId;
@@ -37,6 +37,7 @@ public class ExpenseResponseDto {
         this.parkName = parkName;
         this.createdBy = createdBy;
         this.auditStatus = auditStatus;
+        this.justification = justification;
         this.receiptUrl = receiptUrl;
         this.currency = currency;
         this.createdAt = createdAt;
@@ -54,6 +55,7 @@ public class ExpenseResponseDto {
     public String getParkName() { return parkName; }
     public UUID getCreatedBy() { return createdBy; }
     public AuditStatus getAuditStatus() { return auditStatus; }
+    public String getJustification() { return justification; }
     public String getReceiptUrl() { return receiptUrl; }
     public String getCurrency() { return currency; }
     public LocalDateTime getCreatedAt() { return createdAt; }

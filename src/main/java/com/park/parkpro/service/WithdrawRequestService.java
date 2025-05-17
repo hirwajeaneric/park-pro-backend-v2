@@ -99,7 +99,7 @@ public class WithdrawRequestService {
         request.setStatus(WithdrawRequest.WithdrawRequestStatus.APPROVED);
         request.setApprover(approver);
         request.setApprovedAt(LocalDateTime.now());
-        return withdrawRequestRepository.save(request); // Triggers update_withdraw_balances
+        return withdrawRequestRepository.save(request);
     }
 
     @Transactional
@@ -139,7 +139,6 @@ public class WithdrawRequestService {
         WithdrawRequest withdrawRequest = withdrawRequestRepository.findById(withdrawRequestId)
                 .orElseThrow(() -> new NotFoundException("Withdraw request not found with ID: " + withdrawRequestId));
 
-        // Update fields
         withdrawRequest.setReason(request.getReason());
         if (request.getDescription() != null) {
             withdrawRequest.setDescription(request.getDescription());
@@ -158,7 +157,7 @@ public class WithdrawRequestService {
         }
 
         withdrawRequest.setUpdatedAt(LocalDateTime.now());
-        return withdrawRequestRepository.save(withdrawRequest); // Triggers update_withdraw_balances if amount changes
+        return withdrawRequestRepository.save(withdrawRequest);
     }
 
     @Transactional
@@ -173,20 +172,29 @@ public class WithdrawRequestService {
         WithdrawRequest withdrawRequest = withdrawRequestRepository.findById(withdrawRequestId)
                 .orElseThrow(() -> new NotFoundException("Withdraw request not found with ID: " + withdrawRequestId));
 
+        request.validate();
+
         String oldAuditStatus = String.valueOf(withdrawRequest.getAuditStatus());
         withdrawRequest.setAuditStatus(request.getAuditStatus());
+        withdrawRequest.setJustification(request.getJustification());
         withdrawRequest.setUpdatedAt(LocalDateTime.now());
         withdrawRequest = withdrawRequestRepository.save(withdrawRequest);
-        // Log to audit_log
-        // Note: The database trigger will log the audit_status change, but we set performed_by here
+
+        String logMessage = String.format(
+                "Changed audit_status from %s to %s%s",
+                oldAuditStatus,
+                request.getAuditStatus(),
+                request.getJustification() != null ? " with justification: " + request.getJustification() : ""
+        );
         auditLogRepository.save(new AuditLog(
                 "UPDATE_AUDIT_STATUS",
                 "WITHDRAW_REQUEST",
                 withdrawRequestId,
-                "Changed audit_status from " + oldAuditStatus + " to " + request.getAuditStatus(),
+                logMessage,
                 user,
                 LocalDateTime.now()
         ));
+
         return withdrawRequest;
     }
 
@@ -206,7 +214,7 @@ public class WithdrawRequestService {
             throw new ForbiddenException("Only PARK_MANAGER, FINANCE_OFFICER, or ADMIN can delete withdraw requests");
         }
 
-        withdrawRequestRepository.delete(request); // Triggers restore_withdraw_balances if APPROVED
+        withdrawRequestRepository.delete(request);
     }
 
     public List<WithdrawRequest> getWithdrawRequestsByBudgetCategory(UUID budgetCategoryId) {

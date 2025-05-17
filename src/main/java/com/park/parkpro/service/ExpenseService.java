@@ -157,7 +157,6 @@ public class ExpenseService {
                 .orElseThrow(() -> new NotFoundException("Expense not found with ID: " + expenseId));
 
         if ("PARK_MANAGER".equals(user.getRole())) {
-            // Park Manager can update: description, receiptUrl, budgetCategory
             if (request.getDescription() != null) {
                 expense.setDescription(request.getDescription());
             }
@@ -173,30 +172,25 @@ public class ExpenseService {
                 if (newCategory.getBalance().compareTo(expense.getAmount()) < 0) {
                     throw new BadRequestException("Insufficient balance in new budget category");
                 }
-                // Revert old category balance
                 BudgetCategory oldCategory = expense.getBudgetCategory();
                 oldCategory.setUsedAmount(oldCategory.getUsedAmount().subtract(expense.getAmount()));
                 oldCategory.setBalance(oldCategory.getAllocatedAmount().subtract(oldCategory.getUsedAmount()));
                 budgetCategoryRepository.save(oldCategory);
-                // Update to new category
                 expense.setBudgetCategory(newCategory);
                 newCategory.setUsedAmount(newCategory.getUsedAmount().add(expense.getAmount()));
                 newCategory.setBalance(newCategory.getAllocatedAmount().subtract(newCategory.getUsedAmount()));
                 budgetCategoryRepository.save(newCategory);
             }
         } else if ("FINANCE_OFFICER".equals(user.getRole()) || "ADMIN".equals(user.getRole())) {
-            // Finance Officer can update: amount, auditStatus, budgetCategory
             if (request.getAmount() != null) {
                 BigDecimal oldAmount = expense.getAmount();
                 BudgetCategory category = expense.getBudgetCategory();
                 if (category.getBalance().add(oldAmount).compareTo(request.getAmount()) < 0) {
                     throw new BadRequestException("Insufficient balance in budget category for new amount");
                 }
-                // Adjust category balance
                 category.setUsedAmount(category.getUsedAmount().subtract(oldAmount).add(request.getAmount()));
                 category.setBalance(category.getAllocatedAmount().subtract(category.getUsedAmount()));
                 budgetCategoryRepository.save(category);
-                // Adjust budget balance
                 Budget budget = expense.getBudget();
                 budget.setBalance(budget.getBalance().add(oldAmount).subtract(request.getAmount()));
                 budgetRepository.save(budget);
@@ -214,12 +208,10 @@ public class ExpenseService {
                 if (newCategory.getBalance().compareTo(expense.getAmount()) < 0) {
                     throw new BadRequestException("Insufficient balance in new budget category");
                 }
-                // Revert old category balance
                 BudgetCategory oldCategory = expense.getBudgetCategory();
                 oldCategory.setUsedAmount(oldCategory.getUsedAmount().subtract(expense.getAmount()));
                 oldCategory.setBalance(oldCategory.getAllocatedAmount().subtract(oldCategory.getUsedAmount()));
                 budgetCategoryRepository.save(oldCategory);
-                // Update to new category
                 expense.setBudgetCategory(newCategory);
                 newCategory.setUsedAmount(newCategory.getUsedAmount().add(expense.getAmount()));
                 newCategory.setBalance(newCategory.getAllocatedAmount().subtract(newCategory.getUsedAmount()));
@@ -245,7 +237,6 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new NotFoundException("Expense not found with ID: " + expenseId));
 
-        // The database trigger will handle restoring funds to budget and budget_category
         expenseRepository.delete(expense);
     }
 
@@ -261,18 +252,26 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new NotFoundException("Expense not found with ID: " + expenseId));
 
+        request.validate(); // Validate justification requirements
+
         String oldAuditStatus = String.valueOf(expense.getAuditStatus());
         expense.setAuditStatus(request.getAuditStatus());
+        expense.setJustification(request.getJustification());
         expense.setUpdatedAt(LocalDateTime.now());
         expense = expenseRepository.save(expense);
 
-        // Note: The database trigger will log the audit_status change, but we set performed_by here
-        if (!oldAuditStatus.equals(request.getAuditStatus())) {
+        if (!oldAuditStatus.equals(request.getAuditStatus().toString())) {
+            String logMessage = String.format(
+                    "Changed audit_status from %s to %s%s",
+                    oldAuditStatus,
+                    request.getAuditStatus(),
+                    request.getJustification() != null ? " with justification: " + request.getJustification() : ""
+            );
             auditLogRepository.save(new AuditLog(
                     "UPDATE_AUDIT_STATUS",
                     "EXPENSE",
                     expenseId,
-                    "Changed audit_status from " + oldAuditStatus + " to " + request.getAuditStatus(),
+                    logMessage,
                     user,
                     LocalDateTime.now()
             ));
