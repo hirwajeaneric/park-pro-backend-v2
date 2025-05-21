@@ -1,4 +1,3 @@
-// src/main/java/com/park/parkpro/domain/User.java
 package com.park.parkpro.domain;
 
 import jakarta.persistence.*;

@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -36,8 +36,9 @@ public class BookingController {
         }
         String token = authHeader.substring(7);
         LOGGER.info("Creating booking for activityId: " + request.getActivityId());
-        Booking booking = bookingService.createBooking(request.getActivityId(), request.getVisitDate(),
-                paymentMethodId, token);
+        Booking booking = bookingService.createBooking(
+                request.getActivityId(), request.getVisitDate(), request.getNumberOfTickets(),
+                request.getGroupMembers(), paymentMethodId, token);
         return ResponseEntity.created(URI.create("/api/bookings/" + booking.getId()))
                 .body(mapToBookingDto(booking));
     }
@@ -88,11 +89,19 @@ public class BookingController {
     }
 
     private BookingResponseDto mapToBookingDto(Booking booking) {
+        List<BookingResponseDto.GroupMemberResponseDto> groupMembers = booking.getGroupMembers().stream()
+                .map(gm -> new BookingResponseDto.GroupMemberResponseDto(
+                        gm.getUser() != null ? gm.getUser().getId() : null,
+                        gm.getGuestName(),
+                        gm.getGuestEmail()))
+                .collect(Collectors.toList());
+
         return new BookingResponseDto(
                 booking.getId(), booking.getVisitor().getId(), booking.getActivity().getId(),
                 booking.getAmount(), booking.getPark().getId(), booking.getVisitDate(),
                 booking.getStatus(), booking.getPaymentReference(), booking.getCurrency(),
-                booking.getConfirmedAt(), booking.getCreatedAt(), booking.getUpdatedAt()
+                booking.getConfirmedAt(), booking.getCreatedAt(), booking.getUpdatedAt(),
+                booking.getGroupMembers().size(), groupMembers
         );
     }
 }

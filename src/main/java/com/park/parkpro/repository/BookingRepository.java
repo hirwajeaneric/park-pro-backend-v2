@@ -12,6 +12,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findByVisitorId(UUID visitorId);
     List<Booking> findByParkId(UUID parkId);
 
+    @Query("SELECT b FROM Booking b JOIN b.groupMembers gm WHERE gm.user.id = :userId")
+    List<Booking> findByGroupMemberUserId(UUID userId);
+
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.activity.id = :activityId AND b.visitDate = :visitDate AND b.status = 'CONFIRMED'")
     long countByActivityIdAndVisitDateAndStatus(UUID activityId, LocalDate visitDate, String status);
 }
