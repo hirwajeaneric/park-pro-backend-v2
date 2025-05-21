@@ -172,11 +172,7 @@ public class DonationService {
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-
-        if (!List.of("FINANCE_OFFICER", "GOVERNMENT_OFFICER").contains(user.getRole())) {
-            throw new ForbiddenException("Only FINANCE_OFFICER or GOVERNMENT_OFFICER can view donations");
-        }
-
+        
         Park park = parkRepository.findById(parkId)
                 .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
 
