@@ -105,7 +105,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/donations/{donationId}/confirm").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER")
                         .requestMatchers("/api/donations/{donationId}/cancel").hasAnyRole("VISITOR", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers("/api/parks/{parkId}/donations").hasAnyRole("PARK_MANAGER", "ADMIN", "FINANCE_OFFICER", "AUDITOR")
-                        .requestMatchers(HttpMethod.GET, "/api/donations/{donationId}").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/donations/{donationId}").permitAll()
                         .requestMatchers("/api/parks/**").hasAnyRole("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "GOVERNMENT_OFFICER", "AUDITOR")
                         .requestMatchers(HttpMethod.POST, "/api/opportunities").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/opportunities/{opportunityId}").hasAnyRole("ADMIN", "PARK_MANAGER", "FINANCE_OFFICER")
