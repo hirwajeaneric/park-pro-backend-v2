@@ -3,10 +3,12 @@ package com.park.parkpro.dto;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class CreateIncomeStreamRequestDto {
     @NotBlank(message = "Name is required")
     private String name;
+    private UUID parkId;
 
     @NotNull(message = "Percentage is required")
     @Min(value = 0, message = "Percentage cannot be negative")
@@ -20,6 +22,7 @@ public class CreateIncomeStreamRequestDto {
     // Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public UUID getParkId() { return parkId; }
     public BigDecimal getPercentage() { return percentage; }
     public void setPercentage(BigDecimal percentage) { this.percentage = percentage; }
     public BigDecimal getTotalContribution() { return totalContribution; }

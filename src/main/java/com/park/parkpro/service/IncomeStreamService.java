@@ -40,9 +40,12 @@ public class IncomeStreamService {
     }
 
     @Transactional
-    public IncomeStream createIncomeStream(UUID budgetId, String name, BigDecimal percentage, BigDecimal totalContribution, String token) {
+    public IncomeStream createIncomeStream(UUID budgetId, String name, BigDecimal percentage,  UUID parkId, BigDecimal totalContribution, String token) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
+
+        Park park = parkRepository.findById(parkId)
+                .orElseThrow(() -> new NotFoundException("Park not found with ID: " + parkId));
 
         String email = jwtUtil.getEmailFromToken(token);
         User user = userRepository.findByEmail(email)
@@ -69,8 +72,10 @@ public class IncomeStreamService {
 
         IncomeStream incomeStream = new IncomeStream();
         incomeStream.setBudget(budget);
+        incomeStream.setFiscalYear(budget.getFiscalYear());
         incomeStream.setName(name);
         incomeStream.setPercentage(percentage);
+        incomeStream.setPark(park);
         incomeStream.setTotalContribution(totalContribution);
         incomeStream.setActualBalance(BigDecimal.ZERO);
         incomeStream.setCreatedBy(user);

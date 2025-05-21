@@ -33,7 +33,7 @@ public class IncomeStreamController {
         }
         String token = authHeader.substring(7);
         IncomeStream incomeStream = incomeStreamService.createIncomeStream(
-                budgetId, request.getName(), request.getPercentage(), request.getTotalContribution(), token);
+                budgetId, request.getName(), request.getPercentage(), request.getParkId(), request.getTotalContribution(), token);
         return ResponseEntity.ok(mapToDto(incomeStream));
     }
 
