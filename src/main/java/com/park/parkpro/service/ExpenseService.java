@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,6 +63,21 @@ public class ExpenseService {
         }
         if (budgetCategory.getBalance().compareTo(request.getAmount()) < 0) {
             throw new BadRequestException("Insufficient balance in budget category");
+        }
+
+        // New validation for monthly expense limits
+        Month currentMonth = LocalDateTime.now().getMonth();
+        if (currentMonth.getValue() >= Month.JULY.getValue()) {
+            BigDecimal allocatedAmount = budgetCategory.getAllocatedAmount();
+            BigDecimal currentBalance = budgetCategory.getBalance();
+            BigDecimal sevenTwelfths = allocatedAmount.multiply(new BigDecimal("7")).divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+            BigDecimal twoTwelfths = allocatedAmount.multiply(new BigDecimal("2")).divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+
+            if (currentBalance.compareTo(sevenTwelfths) < 0 && request.getAmount().compareTo(twoTwelfths) >= 0) {
+                throw new BadRequestException(
+                    "Cannot withdraw more than 2/12 of allocated amount when balance is below 7/12 of allocated amount after July"
+                );
+            }
         }
 
         Park park = parkRepository.findById(request.getParkId())
