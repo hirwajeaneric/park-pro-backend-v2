@@ -42,6 +42,13 @@ public class AuditController {
         return ResponseEntity.ok(auditService.getAuditById(id));
     }
 
+    @GetMapping("/park/{parkId}/year/{year}")
+    public ResponseEntity<AuditResponseDto> getAuditByParkAndYear(
+            @PathVariable UUID parkId,
+            @PathVariable Integer year) {
+        return ResponseEntity.ok(auditService.getAuditByParkAndYear(parkId, year));
+    }
+
     @PatchMapping("/{id}/progress")
     public ResponseEntity<AuditResponseDto> updateAuditProgress(
             @PathVariable UUID id,

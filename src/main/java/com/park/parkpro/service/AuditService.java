@@ -42,34 +42,15 @@ public class AuditService {
                 });
 
         // Calculate audit statistics
-        List<Expense> expenses = expenseRepository.findByParkIdAndYear(request.getParkId(), request.getAuditYear());
-        List<WithdrawRequest> withdrawRequests = withdrawRequestRepository.findByParkIdAndYear(request.getParkId(), request.getAuditYear());
-
-        int totalItems = expenses.size() + withdrawRequests.size();
-        if (totalItems == 0) {
-            throw new IllegalStateException("No expenses or withdraw requests found for the specified year");
-        }
-
-        long passedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.PASSED).count() +
-                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.PASSED).count();
-
-        long failedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.FAILED).count() +
-                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.FAILED).count();
-
-        long unjustifiedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.UNJUSTIFIED).count() +
-                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.UNJUSTIFIED).count();
-
-        double percentagePassed = (double) passedCount / totalItems * 100;
-        double percentageFailed = (double) failedCount / totalItems * 100;
-        double percentageUnjustified = (double) unjustifiedCount / totalItems * 100;
+        AuditStatistics stats = calculateAuditStatistics(request.getParkId(), request.getAuditYear());
 
         Audit audit = Audit.builder()
                 .park(park)
                 .auditYear(request.getAuditYear())
-                .percentagePassed(percentagePassed)
-                .percentageFailed(percentageFailed)
-                .percentageUnjustified(percentageUnjustified)
-                .totalPercentage(percentagePassed)
+                .percentagePassed(stats.percentagePassed)
+                .percentageFailed(stats.percentageFailed)
+                .percentageUnjustified(stats.percentageUnjustified)
+                .totalPercentage(stats.percentagePassed)
                 .auditProgress(AuditProgress.IN_PROGRESS)
                 .createdBy(currentUser)
                 .updatedBy(currentUser)
@@ -94,6 +75,25 @@ public class AuditService {
     public AuditResponseDto getAuditById(UUID id) {
         Audit audit = auditRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Audit not found"));
+        return mapToDto(audit);
+    }
+
+    @Transactional
+    public AuditResponseDto getAuditByParkAndYear(UUID parkId, Integer year) {
+        Audit audit = auditRepository.findByParkIdAndAuditYear(parkId, year)
+                .orElseThrow(() -> new NotFoundException("Audit not found for park ID: " + parkId + " and year: " + year));
+
+        // Recalculate statistics
+        AuditStatistics stats = calculateAuditStatistics(parkId, year);
+
+        // Update the audit with new statistics
+        audit.setPercentagePassed(stats.percentagePassed);
+        audit.setPercentageFailed(stats.percentageFailed);
+        audit.setPercentageUnjustified(stats.percentageUnjustified);
+        audit.setTotalPercentage(stats.percentagePassed);
+        audit.setUpdatedAt(LocalDateTime.now());
+
+        audit = auditRepository.save(audit);
         return mapToDto(audit);
     }
 
@@ -130,6 +130,40 @@ public class AuditService {
                 .createdAt(audit.getCreatedAt())
                 .updatedAt(audit.getUpdatedAt())
                 .build();
+    }
+
+    // Helper class to hold audit statistics
+    private static class AuditStatistics {
+        double percentagePassed;
+        double percentageFailed;
+        double percentageUnjustified;
+    }
+
+    // Helper method to calculate audit statistics
+    private AuditStatistics calculateAuditStatistics(UUID parkId, Integer year) {
+        List<Expense> expenses = expenseRepository.findByParkIdAndYear(parkId, year);
+        List<WithdrawRequest> withdrawRequests = withdrawRequestRepository.findByParkIdAndYear(parkId, year);
+
+        int totalItems = expenses.size() + withdrawRequests.size();
+        if (totalItems == 0) {
+            throw new IllegalStateException("No expenses or withdraw requests found for the specified year");
+        }
+
+        long passedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.PASSED).count() +
+                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.PASSED).count();
+
+        long failedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.FAILED).count() +
+                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.FAILED).count();
+
+        long unjustifiedCount = expenses.stream().filter(e -> e.getAuditStatus() == AuditStatus.UNJUSTIFIED).count() +
+                withdrawRequests.stream().filter(w -> w.getAuditStatus() == AuditStatus.UNJUSTIFIED).count();
+
+        AuditStatistics stats = new AuditStatistics();
+        stats.percentagePassed = (double) passedCount / totalItems * 100;
+        stats.percentageFailed = (double) failedCount / totalItems * 100;
+        stats.percentageUnjustified = (double) unjustifiedCount / totalItems * 100;
+
+        return stats;
     }
 }
 

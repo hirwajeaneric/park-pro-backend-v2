@@ -129,6 +129,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/audits").hasAnyRole("AUDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/audits").hasAnyRole("AUDITOR", "ADMIN", "GOVERNMENT_OFFICER")
                         .requestMatchers(HttpMethod.GET, "/api/audits/year/{year}").hasAnyRole("AUDITOR", "ADMIN", "GOVERNMENT_OFFICER")
+                        .requestMatchers(HttpMethod.GET, "/api/audits/park/{parkId}/year/{year}").hasAnyRole("AUDITOR", "ADMIN", "GOVERNMENT_OFFICER")
                         .requestMatchers(HttpMethod.GET, "/api/audits/{id}").hasAnyRole("AUDITOR", "ADMIN", "GOVERNMENT_OFFICER")
                         .requestMatchers(HttpMethod.PATCH, "/api/audits/{id}/progress").hasAnyRole("AUDITOR", "ADMIN")
                         .anyRequest().authenticated()
