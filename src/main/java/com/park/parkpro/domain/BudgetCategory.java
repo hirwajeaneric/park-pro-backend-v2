@@ -29,6 +29,10 @@ public class BudgetCategory {
     @Column(name = "allocated_amount", nullable = false)
     private BigDecimal allocatedAmount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "spending_strategy", nullable = false)
+    private SpendingStrategy spendingStrategy;
+
     @Column(name = "used_amount", nullable = false)
     private BigDecimal usedAmount;
 
@@ -41,3 +45,4 @@ public class BudgetCategory {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 }
+

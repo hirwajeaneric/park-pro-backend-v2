@@ -1,5 +1,6 @@
 package com.park.parkpro.dto;
 
+import com.park.parkpro.domain.SpendingStrategy;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -13,9 +14,14 @@ public class CreateBudgetCategoryRequestDto {
     @Max(value = 100, message = "Percentage cannot exceed 100")
     private BigDecimal percentage;
 
+    @NotNull(message = "Spending strategy is required")
+    private SpendingStrategy spendingStrategy;
+
     // Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public BigDecimal getPercentage() { return percentage; }
     public void setPercentage(BigDecimal percentage) { this.percentage = percentage; }
+    public SpendingStrategy getSpendingStrategy() { return spendingStrategy; }
+    public void setSpendingStrategy(SpendingStrategy spendingStrategy) { this.spendingStrategy = spendingStrategy; }
 }

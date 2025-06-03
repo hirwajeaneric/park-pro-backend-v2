@@ -2,6 +2,7 @@ package com.park.parkpro.service;
 
 import com.park.parkpro.domain.Budget;
 import com.park.parkpro.domain.BudgetCategory;
+import com.park.parkpro.domain.SpendingStrategy;
 import com.park.parkpro.domain.User;
 import com.park.parkpro.exception.BadRequestException;
 import com.park.parkpro.exception.ForbiddenException;
@@ -35,7 +36,7 @@ public class BudgetCategoryService {
     }
 
     @Transactional
-    public BudgetCategory createBudgetCategory(UUID budgetId, String name, BigDecimal percentage, String token) {
+    public BudgetCategory createBudgetCategory(UUID budgetId, String name, BigDecimal percentage, SpendingStrategy spendingStrategy, String token) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with ID: " + budgetId));
         if (!"DRAFT".equals(budget.getStatus())) {
@@ -61,13 +62,14 @@ public class BudgetCategoryService {
         category.setBudget(budget);
         category.setName(name);
         category.setAllocatedAmount(allocatedAmount);
+        category.setSpendingStrategy(spendingStrategy);
         category.setUsedAmount(BigDecimal.ZERO);
         category.setBalance(allocatedAmount);
         return budgetCategoryRepository.save(category);
     }
 
     @Transactional
-    public BudgetCategory updateBudgetCategory(UUID categoryId, BigDecimal allocatedAmount, String token) {
+    public BudgetCategory updateBudgetCategory(UUID categoryId, BigDecimal allocatedAmount, SpendingStrategy spendingStrategy, String token) {
         BudgetCategory category = budgetCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("Budget category not found with ID: " + categoryId));
         Budget budget = category.getBudget();
@@ -92,6 +94,7 @@ public class BudgetCategoryService {
         }
 
         category.setAllocatedAmount(allocatedAmount);
+        category.setSpendingStrategy(spendingStrategy);
         category.setBalance(allocatedAmount.subtract(category.getUsedAmount()));
         return budgetCategoryRepository.save(category);
     }

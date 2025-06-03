@@ -32,7 +32,8 @@ public class BudgetCategoryController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        BudgetCategory category = budgetCategoryService.createBudgetCategory(budgetId, request.getName(), request.getPercentage(), token);
+        BudgetCategory category = budgetCategoryService.createBudgetCategory(budgetId, request.getName(), 
+            request.getPercentage(), request.getSpendingStrategy(), token);
         return ResponseEntity.ok(mapToDto(category));
     }
 
@@ -45,7 +46,8 @@ public class BudgetCategoryController {
             throw new UnauthorizedException("Invalid or missing Authorization header");
         }
         String token = authHeader.substring(7);
-        BudgetCategory category = budgetCategoryService.updateBudgetCategory(categoryId, request.getAllocatedAmount(), token);
+        BudgetCategory category = budgetCategoryService.updateBudgetCategory(categoryId, request.getAllocatedAmount(), 
+            request.getSpendingStrategy(), token);
         return ResponseEntity.ok(mapToDto(category));
     }
 
@@ -80,6 +82,7 @@ public class BudgetCategoryController {
                 category.getAllocatedAmount(),
                 category.getUsedAmount(),
                 category.getBalance(),
+                category.getSpendingStrategy(),
                 category.getCreatedAt(),
                 category.getUpdatedAt()
         );

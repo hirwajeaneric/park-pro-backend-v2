@@ -1,5 +1,6 @@
 package com.park.parkpro.dto;
 
+import com.park.parkpro.domain.SpendingStrategy;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -11,18 +12,20 @@ public class BudgetCategoryResponseDto {
     private BigDecimal allocatedAmount;
     private BigDecimal usedAmount;
     private BigDecimal balance;
+    private SpendingStrategy spendingStrategy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public BudgetCategoryResponseDto(UUID id, UUID budgetId, String name, BigDecimal allocatedAmount,
-                                     BigDecimal usedAmount, BigDecimal balance, LocalDateTime createdAt,
-                                     LocalDateTime updatedAt) {
+                                     BigDecimal usedAmount, BigDecimal balance, SpendingStrategy spendingStrategy,
+                                     LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.budgetId = budgetId;
         this.name = name;
         this.allocatedAmount = allocatedAmount;
         this.usedAmount = usedAmount;
         this.balance = balance;
+        this.spendingStrategy = spendingStrategy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -34,6 +37,7 @@ public class BudgetCategoryResponseDto {
     public BigDecimal getAllocatedAmount() { return allocatedAmount; }
     public BigDecimal getUsedAmount() { return usedAmount; }
     public BigDecimal getBalance() { return balance; }
+    public SpendingStrategy getSpendingStrategy() { return spendingStrategy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
