@@ -83,17 +83,21 @@ public class AuditService {
         Audit audit = auditRepository.findByParkIdAndAuditYear(parkId, year)
                 .orElseThrow(() -> new NotFoundException("Audit not found for park ID: " + parkId + " and year: " + year));
 
-        // Recalculate statistics
-        AuditStatistics stats = calculateAuditStatistics(parkId, year);
+        // Only recalculate statistics if audit is not completed
+        if (audit.getAuditProgress() != AuditProgress.COMPLETED) {
+            // Recalculate statistics
+            AuditStatistics stats = calculateAuditStatistics(parkId, year);
 
-        // Update the audit with new statistics
-        audit.setPercentagePassed(stats.percentagePassed);
-        audit.setPercentageFailed(stats.percentageFailed);
-        audit.setPercentageUnjustified(stats.percentageUnjustified);
-        audit.setTotalPercentage(stats.percentagePassed);
-        audit.setUpdatedAt(LocalDateTime.now());
+            // Update the audit with new statistics
+            audit.setPercentagePassed(stats.percentagePassed);
+            audit.setPercentageFailed(stats.percentageFailed);
+            audit.setPercentageUnjustified(stats.percentageUnjustified);
+            audit.setTotalPercentage(stats.percentagePassed);
+            audit.setUpdatedAt(LocalDateTime.now());
 
-        audit = auditRepository.save(audit);
+            audit = auditRepository.save(audit);
+        }
+
         return mapToDto(audit);
     }
 
