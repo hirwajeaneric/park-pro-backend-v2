@@ -91,8 +91,8 @@ public class ExpenseService {
         budgetCategory.setBalance(budgetCategory.getAllocatedAmount().subtract(budgetCategory.getUsedAmount()));
         budgetCategoryRepository.save(budgetCategory);
 
-        budget.setBalance(budget.getBalance().subtract(request.getAmount()));
-        budgetRepository.save(budget);
+        // budget.setBalance(budget.getBalance().subtract(request.getAmount()));
+        // budgetRepository.save(budget);
 
         Expense expense = new Expense(budget, request.getAmount(), request.getDescription(),
                 budgetCategory, park, createdBy, AuditStatus.UNJUSTIFIED);
