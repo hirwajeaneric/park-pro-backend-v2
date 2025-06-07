@@ -38,6 +38,11 @@ public class UserService {
     private static final Set<String> VALID_ROLES = Set.of("ADMIN", "FINANCE_OFFICER", "PARK_MANAGER", "VISITOR", "GOVERNMENT_OFFICER", "AUDITOR");
     private final JwtUtil jwtUtil;
 
+    // Add password validation constants
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final String PASSWORD_PATTERN = 
+        "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!*()]).{8,}$";
+
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ParkRepository parkRepository,
                        VerificationTokenRepository verificationTokenRepository, PasswordResetTokenRepository passwordResetTokenRepository,
                        JavaMailSender mailSender, JwtUtil jwtUtil) {
@@ -250,9 +255,8 @@ public class UserService {
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        if (newPassword == null || newPassword.trim().isEmpty() || newPassword.length() < 8) {
-            throw new BadRequestException("Password must be at least 8 characters long");
-        }
+        validatePassword(newPassword);
+        
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new BadRequestException("Invalid reset token"));
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
@@ -344,19 +348,38 @@ public class UserService {
         userRepository.delete(targetUser);
     }
 
+    private void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new BadRequestException("Password cannot be empty");
+        }
+        
+        if (password.length() < MIN_PASSWORD_LENGTH) {
+            throw new BadRequestException("Password must be at least " + MIN_PASSWORD_LENGTH + " characters long");
+        }
+        
+        if (password.contains(" ")) {
+            throw new BadRequestException("Password cannot contain whitespace");
+        }
+        
+        if (!password.matches(PASSWORD_PATTERN)) {
+            throw new BadRequestException(
+                "Password must contain at least one uppercase letter, " +
+                "one lowercase letter, one number, and one special character (@#$%^&+=!*())"
+            );
+        }
+    }
+
     private void validateUserInput(String email, String password, String role) {
         if (email == null || email.trim().isEmpty()) {
             throw new BadRequestException("Email cannot be empty");
         }
-        if (password == null || password.trim().isEmpty()) {
-            throw new BadRequestException("Password cannot be empty");
-        }
-        if (password.length() < 8) {
-            throw new BadRequestException("Password must be at least 8 characters long");
-        }
+        
+        validatePassword(password);
+        
         if (!VALID_ROLES.contains(role)) {
             throw new BadRequestException("Invalid role: " + role);
         }
+        
         if (userRepository.findByEmail(email).isPresent()) {
             throw new ConflictException("Email '" + email + "' is already taken");
         }
