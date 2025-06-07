@@ -23,23 +23,82 @@ public class BudgetService {
     private final ParkRepository parkRepository;
     private final UserRepository userRepository;
     private final IncomeStreamRepository incomeStreamRepository;
+    private final ExpenseRepository expenseRepository;
+    private final BookingRepository bookingRepository;
+    private final DonationRepository donationRepository;
+    private final FundingRequestRepository fundingRequestRepository;
+    private final WithdrawRequestRepository withdrawRequestRepository;
     private final JwtUtil jwtUtil;
 
     public BudgetService(BudgetRepository budgetRepository, ParkRepository parkRepository,
                          UserRepository userRepository, IncomeStreamRepository incomeStreamRepository,
-                         JwtUtil jwtUtil) {
+                         ExpenseRepository expenseRepository, BookingRepository bookingRepository,
+                         DonationRepository donationRepository, FundingRequestRepository fundingRequestRepository,
+                         WithdrawRequestRepository withdrawRequestRepository, JwtUtil jwtUtil) {
         this.budgetRepository = budgetRepository;
         this.parkRepository = parkRepository;
         this.userRepository = userRepository;
         this.incomeStreamRepository = incomeStreamRepository;
+        this.expenseRepository = expenseRepository;
+        this.bookingRepository = bookingRepository;
+        this.donationRepository = donationRepository;
+        this.fundingRequestRepository = fundingRequestRepository;
+        this.withdrawRequestRepository = withdrawRequestRepository;
         this.jwtUtil = jwtUtil;
+    }
+
+    private BigDecimal calculateBudgetBalance(Budget budget) {
+        UUID budgetId = budget.getId();
+        Integer fiscalYear = budget.getFiscalYear();
+        UUID parkId = budget.getPark().getId();
+
+        // Get base balance from budget
+        BigDecimal balance = budget.getBalance();
+
+        // Subtract expenses
+        BigDecimal totalExpenses = expenseRepository.findByBudgetId(budgetId).stream()
+                .map(Expense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        balance = balance.subtract(totalExpenses);
+
+        // Subtract approved withdraw requests
+        BigDecimal totalWithdraws = withdrawRequestRepository.findByBudgetId(budgetId).stream()
+                .filter(request -> WithdrawRequest.WithdrawRequestStatus.APPROVED.equals(request.getStatus()))
+                .map(WithdrawRequest::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        balance = balance.subtract(totalWithdraws);
+
+        // Add confirmed bookings for the fiscal year
+        BigDecimal totalBookings = bookingRepository.findByParkId(parkId).stream()
+                .filter(booking -> {
+                    int bookingFiscalYear = booking.getVisitDate().getYear();
+                    return bookingFiscalYear == fiscalYear && "CONFIRMED".equals(booking.getStatus());
+                })
+                .map(Booking::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        balance = balance.add(totalBookings);
+
+        // Add confirmed donations
+        BigDecimal totalDonations = donationRepository.findByParkIdAndFiscalYear(parkId, fiscalYear).stream()
+                .filter(donation -> "CONFIRMED".equals(donation.getStatus()))
+                .map(Donation::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        balance = balance.add(totalDonations);
+
+        // Add approved funding requests
+        BigDecimal totalApprovedFunding = fundingRequestRepository.findByBudgetId(budgetId).stream()
+                .filter(request -> "APPROVED".equals(request.getStatus()))
+                .map(FundingRequest::getApprovedAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        balance = balance.add(totalApprovedFunding);
+
+        return balance;
     }
 
     public Budget getBudgetById(UUID budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new NotFoundException("Budget not found with id: " + budgetId));
-        // Sync balance with category balances
-        budget.setBalance(budgetRepository.sumCategoryBalances(budgetId));
+        budget.setBalance(calculateBudgetBalance(budget));
         return budget;
     }
 
@@ -88,8 +147,6 @@ public class BudgetService {
         }
 
         String email = jwtUtil.getEmailFromToken(token);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
 
         budget.setTotalAmount(totalAmount);
         budget.setFiscalYear(fiscalYear);
@@ -114,15 +171,24 @@ public class BudgetService {
             throw new ForbiddenException("Only GOVERNMENT_OFFICER can approve budgets");
         }
 
+        // Find government income stream and update budget balance
+        List<IncomeStream> governmentStreams = incomeStreamRepository.findByBudgetIdAndNameContaining(budgetId, "Government");
+        System.out.println("Government streams: " + governmentStreams);
+        if (governmentStreams.isEmpty()) {
+            throw new BadRequestException("No government income stream found for this budget");
+        }
+
+        budget.setBalance(governmentStreams.get(0).getTotalContribution());
         budget.setStatus("APPROVED");
         budget.setApprovedBy(approver);
         budget.setApprovedAt(LocalDateTime.now());
-        // Top up government income streams (Rule 8)
-        incomeStreamRepository.findByBudgetIdAndNameContaining(budgetId, "Government")
-                .forEach(is -> {
-                    is.setActualBalance(is.getTotalContribution());
-                    incomeStreamRepository.save(is);
-                });
+        
+        // Top up government income streams actual balance
+        governmentStreams.forEach(is -> {
+            is.setActualBalance(is.getTotalContribution());
+            incomeStreamRepository.save(is);
+        });
+        
         return budgetRepository.save(budget);
     }
 
@@ -152,7 +218,7 @@ public class BudgetService {
             throw new NotFoundException("Park not found with ID: " + parkId);
         }
         return budgetRepository.findByParkId(parkId).stream()
-                .peek(budget -> budget.setBalance(budgetRepository.sumCategoryBalances(budget.getId())))
+                .peek(budget -> budget.setBalance(calculateBudgetBalance(budget)))
                 .collect(Collectors.toList());
     }
 
@@ -172,13 +238,16 @@ public class BudgetService {
                     .filter(b -> b.getPark().getId().equals(park.getId()))
                     .findFirst()
                     .orElse(null);
+            
+            BigDecimal balance = budget != null ? calculateBudgetBalance(budget) : null;
+            
             return new BudgetByFiscalYearResponseDto(
                     budget != null ? budget.getId() : null,
                     park.getId(),
                     park.getName(),
                     fiscalYear,
                     budget != null ? budget.getTotalAmount() : null,
-                    budget != null ? budgetRepository.sumCategoryBalances(budget.getId()) : null,
+                    balance,
                     budget != null ? budget.getUnallocated() : null,
                     budget != null ? budget.getStatus() : null,
                     budget != null ? budget.getCreatedBy().getId() : null,

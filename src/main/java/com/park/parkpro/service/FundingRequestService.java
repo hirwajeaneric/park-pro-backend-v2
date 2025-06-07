@@ -124,11 +124,11 @@ public class FundingRequestService {
         }
 
         // Update budget and category (Rule 6)
-        budget.setTotalAmount(budget.getTotalAmount().add(approvedAmount));
+        // budget.setTotalAmount(budget.getTotalAmount().add(approvedAmount));
         budget.setUnallocated(unallocated.subtract(approvedAmount));
         category.setAllocatedAmount(category.getAllocatedAmount().add(approvedAmount));
         category.setBalance(category.getBalance().add(approvedAmount));
-        budget.setBalance(budgetRepository.sumCategoryBalances(budget.getId()));
+        // budget.setBalance(budgetRepository.sumCategoryBalances(budget.getId()));
         budget.setUpdatedAt(LocalDateTime.now());
 
         budgetCategoryRepository.save(category);
